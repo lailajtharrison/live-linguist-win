@@ -22,35 +22,40 @@
                                Foreground="#FFB8C0CC" FontFamily="Segoe UI" />
                 </Border>
             </StackPanel>
+            <!-- Live indicator: dot + soft outer ring -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Spacing="8">
-                <Ellipse Width="10" Height="10" Fill="#FFFF4D4D" VerticalAlignment="Center" />
-                <TextBlock Text="Live" FontSize="14" FontWeight="Medium" Foreground="#FFFF6B6B"
-                           FontFamily="Segoe UI" VerticalAlignment="Center" />
+                <Grid Width="16" Height="16" VerticalAlignment="Center">
+                    <Ellipse Width="16" Height="16" Fill="#40FF4D4F" />
+                    <Ellipse Width="8" Height="8" Fill="#FFFF4D4F" />
+                </Grid>
+                <TextBlock Text="Live" FontSize="13" FontWeight="SemiBold" Foreground="#FFFF6B6D"
+                           FontFamily="Segoe UI" VerticalAlignment="Center" CharacterSpacing="40" />
             </StackPanel>
         </Grid>
 
-        <!-- Body: two content-hugging panels, vertically centered for balance -->
-        <StackPanel Grid.Row="1" Margin="24,0" VerticalAlignment="Center" Spacing="16">
+        <!-- Body: two content-hugging panels, centered, capped measure -->
+        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    MaxWidth="1000" Width="1000" Spacing="16">
 
-            <!-- Verbatim (what was heard) — flatter, recessive -->
-            <Border Background="#FF14181E" CornerRadius="14" Padding="32,24"
+            <!-- Verbatim (what was heard) — recessive but legible -->
+            <Border Background="#FF14181E" CornerRadius="14" Padding="36,26"
                     BorderBrush="#FF20262E" BorderThickness="1">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="GEHÖRT" FontSize="13" FontWeight="SemiBold"
-                               Foreground="#FF9AA6B4" FontFamily="Segoe UI" CharacterSpacing="140" />
-                    <TextBlock FontSize="22" LineHeight="33" Foreground="#FFB8C0CC"
+                    <TextBlock Text="GEHÖRT" FontSize="13" FontWeight="Bold"
+                               Foreground="#FFB8C0CC" FontFamily="Segoe UI" CharacterSpacing="100" />
+                    <TextBlock FontSize="23" LineHeight="34" Foreground="#FFDFE4EA"
                                TextWrapping="Wrap" FontFamily="Segoe UI"
                                Text="Der Vorstand hat beschlossen, die Sitzung aufgrund der anhaltenden technischen Schwierigkeiten auf den folgenden Werktag zu verschieben." />
                 </StackPanel>
             </Border>
 
             <!-- Simplified (easy language) — elevated hero surface -->
-            <Border Background="#FF0E1D19" CornerRadius="14" Padding="32,28"
-                    BorderBrush="#FF1F3A33" BorderThickness="1">
+            <Border Background="#FF0D1F18" CornerRadius="14" Padding="36,30"
+                    BorderBrush="#FF244A40" BorderThickness="1">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="EINFACHE SPRACHE" FontSize="13" FontWeight="SemiBold"
-                               Foreground="#FF6FE9CC" FontFamily="Segoe UI" CharacterSpacing="140" />
+                    <TextBlock Text="EINFACHE SPRACHE" FontSize="13" FontWeight="Bold"
+                               Foreground="#FF5EEAD4" FontFamily="Segoe UI" CharacterSpacing="100" />
                     <TextBlock FontSize="44" FontWeight="Bold" LineHeight="55"
                                Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI"
                                Text="Die Sitzung ist heute nicht. Es gibt technische Probleme. Die Sitzung ist morgen." />
@@ -59,12 +64,12 @@
         </StackPanel>
 
         <!-- Status bar with hairline top divider -->
-        <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#FF1C2128" BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
             <Grid Padding="28,0">
-                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF7A8594"
+                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"
                            FontFamily="Segoe UI" Text="On-device · Qwen3-0.6B · nichts verlässt diesen PC" />
                 <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13"
-                           Foreground="#FF7A8594" FontFamily="Segoe UI" Text="Latenz ~1.2 s" />
+                           Foreground="#FF8B93A0" FontFamily="Segoe UI" Text="Latenz ~1.2 s" />
             </Grid>
         </Border>
     </Grid>
