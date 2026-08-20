@@ -1,0 +1,53 @@
+name: winui
+
+# De-risk: does a REAL WinUI 3 app build and screenshot headlessly on windows-latest?
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'winui/**'
+      - '.github/workflows/winui.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-screenshot:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build (WinUI 3, x64, self-contained unpackaged)
+        run: dotnet build winui/LiveLinguistWinUI.csproj -c Release -p:Platform=x64 --nologo
+
+      - name: Launch app + capture screenshot
+        shell: pwsh
+        env:
+          SCREENSHOT_PATH: ${{ github.workspace }}\screenshot.png
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter LiveLinguistWinUI.exe winui\bin | Select-Object -First 1
+          if (-not $exe) { throw "LiveLinguistWinUI.exe not found under winui\bin" }
+          Write-Host "Launching $($exe.FullName)"
+          $p = Start-Process -FilePath $exe.FullName -PassThru
+          if (-not $p.WaitForExit(90000)) { $p.Kill(); throw "app did not exit within 90s" }
+          Write-Host "app exit code: $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "app reported failure (exit $($p.ExitCode))" }
+
+      - name: Verify screenshot
+        shell: pwsh
+        run: |
+          if (-not (Test-Path screenshot.png)) { throw "screenshot.png was not produced" }
+          $len = (Get-Item screenshot.png).Length
+          Write-Host "screenshot.png is $len bytes"
+          if ($len -lt 2000) { throw "screenshot.png suspiciously small ($len bytes)" }
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: winui-screenshot
+          path: screenshot.png
+          if-no-files-found: error

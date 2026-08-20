@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="LiveLinguistWinUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid x:Name="RootGrid" Width="960" Height="540" Background="#FF0F1114">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Margin="32,22,32,0" FontSize="14" Foreground="#FF5A6370"
+                   FontFamily="Segoe UI" Text="Live Linguist  ·  Windows  ·  WinUI 3" />
+
+        <TextBlock Grid.Row="1" Margin="32,20,32,8" FontSize="21" Foreground="#FF8A939F"
+                   TextWrapping="Wrap" VerticalAlignment="Center" FontFamily="Segoe UI"
+                   Text="VERBATIM&#x0a;Der Vorstand hat beschlossen, die Sitzung aufgrund der anhaltenden technischen Schwierigkeiten auf den folgenden Werktag zu verschieben." />
+
+        <TextBlock Grid.Row="2" Margin="32,8,32,24" FontSize="31" FontWeight="SemiBold"
+                   Foreground="#FFF2F4F7" TextWrapping="Wrap" VerticalAlignment="Center" FontFamily="Segoe UI"
+                   Text="EINFACHE SPRACHE&#x0a;Die Sitzung ist heute nicht. Es gibt technische Probleme. Die Sitzung ist morgen." />
+    </Grid>
+</Window>
