@@ -22,8 +22,17 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # Use Visual Studio's MSBuild (not `dotnet build`): the WinUI/MSIX PRI task
+      # DLL (Microsoft.Build.Packaging.Pri.Tasks.ExpandPriContent) ships with VS's
+      # MSBuild AppxPackage tooling, not the .NET SDK.
+      - name: Setup MSBuild (Visual Studio)
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore (VS MSBuild)
+        run: msbuild winui\LiveLinguistWinUI.csproj -t:restore -p:Configuration=Release -p:Platform=x64 -nologo
+
       - name: Build (WinUI 3, x64, self-contained unpackaged)
-        run: dotnet build winui/LiveLinguistWinUI.csproj -c Release -p:Platform=x64 --nologo
+        run: msbuild winui\LiveLinguistWinUI.csproj -t:build -p:Configuration=Release -p:Platform=x64 -nologo
 
       - name: Launch app + capture screenshot
         shell: pwsh
