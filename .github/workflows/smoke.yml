@@ -1,0 +1,42 @@
+name: smoke-test
+
+# Proves the CI substrate: build a Windows GUI app on real x86 Windows and return
+# a screenshot artifact for the visual critic. Runs on every push to main and on
+# manual dispatch.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-screenshot:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build
+        run: dotnet build smoke/SmokeTest.csproj -c Release --nologo
+
+      - name: Render screenshot
+        run: dotnet run --project smoke/SmokeTest.csproj -c Release --no-build -- "${{ github.workspace }}\screenshot.png"
+
+      - name: Verify screenshot exists
+        shell: pwsh
+        run: |
+          if (-not (Test-Path screenshot.png)) { throw "screenshot.png was not produced" }
+          $len = (Get-Item screenshot.png).Length
+          Write-Host "screenshot.png is $len bytes"
+          if ($len -lt 2000) { throw "screenshot.png is suspiciously small ($len bytes)" }
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-screenshot
+          path: screenshot.png
+          if-no-files-found: error
