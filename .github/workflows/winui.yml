@@ -6,6 +6,7 @@ on:
     branches: [ main ]
     paths:
       - 'winui/**'
+      - 'global.json'
       - '.github/workflows/winui.yml'
   workflow_dispatch:
 
