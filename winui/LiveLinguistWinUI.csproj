@@ -19,6 +19,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.*" />
+    <!-- On-device LLM (llama.cpp bindings) + CPU backend for the no-GPU floor -->
+    <PackageReference Include="LLamaSharp" Version="0.24.0" />
+    <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.24.0" />
   </ItemGroup>
 
 </Project>

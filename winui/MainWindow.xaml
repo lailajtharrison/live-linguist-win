@@ -28,41 +28,38 @@
                     <Ellipse Width="16" Height="16" Fill="#40FF4D4F" />
                     <Ellipse Width="8" Height="8" Fill="#FFFF4D4F" />
                 </Grid>
-                <TextBlock Text="En direct" FontSize="13" FontWeight="SemiBold" Foreground="#FFFF6B6D"
-                           FontFamily="Segoe UI" VerticalAlignment="Center" CharacterSpacing="40" />
+                <TextBlock Text="{x:Bind ViewModel.Mode, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
+                           Foreground="#FFFF6B6D" FontFamily="Segoe UI" VerticalAlignment="Center"
+                           CharacterSpacing="40" />
             </StackPanel>
         </Grid>
 
-        <!-- Body: two content-hugging panels, centered, capped measure -->
+        <!-- Body -->
         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
                     MaxWidth="1000" Width="1000" Spacing="16">
 
-            <!-- Verbatim: the live spoken transcript (with fillers) -->
             <Border Background="#FF14181E" CornerRadius="14" Padding="36,26"
                     BorderBrush="#FF20262E" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="ENTENDU" FontSize="13" FontWeight="Bold"
                                Foreground="#FFB8C0CC" FontFamily="Segoe UI" CharacterSpacing="140" />
-                    <TextBlock FontSize="22" LineHeight="34" Foreground="#FFDFE4EA"
-                               TextWrapping="Wrap" FontFamily="Segoe UI"
-                               Text="euh du coup le tour de potier faut centrer la motte d'argile avant tout sinon ben ça part dans tous les sens et là on mouille les mains et on appuie fort vers le centre" />
+                    <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}" FontSize="22" LineHeight="34"
+                               Foreground="#FFDFE4EA" TextWrapping="Wrap" FontFamily="Segoe UI" />
                 </StackPanel>
             </Border>
 
-            <!-- Simplified: easy French (FALC), from the on-device 1.7B model -->
             <Border Background="#FF0D1F18" CornerRadius="14" Padding="36,30"
                     BorderBrush="#FF244A40" BorderThickness="1">
                 <StackPanel Spacing="10">
                     <TextBlock Text="LANGAGE SIMPLE · FALC" FontSize="13" FontWeight="Bold"
                                Foreground="#FF5EEAD4" FontFamily="Segoe UI" CharacterSpacing="140" />
-                    <TextBlock FontSize="34" FontWeight="Bold" LineHeight="46"
-                               Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI"
-                               Text="Avant de faire le tour de potier, centrez la motte d'argile. Sinon, l'argile part dans tous les sens. Ensuite, mouillez vos mains. Appuyez fort vers le centre." />
+                    <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="34" FontWeight="Bold"
+                               LineHeight="46" Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI" />
                 </StackPanel>
             </Border>
         </StackPanel>
 
-        <!-- Status bar with hairline top divider -->
+        <!-- Status bar -->
         <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
             <Grid Padding="28,0">
                 <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"

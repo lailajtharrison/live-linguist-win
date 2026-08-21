@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
+using LiveLinguistWinUI.Services;
+using LiveLinguistWinUI.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics.Imaging;
@@ -11,56 +13,83 @@ namespace LiveLinguistWinUI;
 
 public sealed partial class MainWindow : Window
 {
+    public MainViewModel ViewModel { get; } = new();
+
+    private SpeechSource? _speech;
+    private LlamaSimplifier? _llm;
+
     public MainWindow()
     {
         this.InitializeComponent();
         RootGrid.Loaded += OnRootLoaded;
     }
 
-    // Once the UI has painted, capture it to a PNG and exit. This is the CI
-    // de-risk: does WinUI 3 composition actually render + capture on a headless
-    // GitHub Actions runner?
     private async void OnRootLoaded(object sender, RoutedEventArgs e)
     {
-        // Let the compositor paint a few frames before capturing.
-        await Task.Delay(1500);
+        // CI/screenshot mode: render the demo frame to PNG and exit.
+        var shot = Environment.GetEnvironmentVariable("SCREENSHOT_PATH");
+        if (!string.IsNullOrEmpty(shot))
+        {
+            await Task.Delay(1200);
+            await CaptureAsync(shot);
+            Application.Current.Exit();
+            return;
+        }
 
+        await GoLiveAsync();
+    }
+
+    // Wire mic -> simplifier -> UI. Degrades to demo mode if either is missing.
+    private async Task GoLiveAsync()
+    {
+        var modelPath = ModelPath();
+        if (File.Exists(modelPath))
+        {
+            try { _llm = LlamaSimplifier.Load(modelPath); } catch { _llm = null; }
+        }
+
+        _speech = new SpeechSource();
+        _speech.Hypothesis += text => Dispatch(() => ViewModel.Verbatim = text);
+        _speech.Phrase += text => _ = OnPhraseAsync(text);
+        var micOk = await _speech.StartAsync();
+
+        Dispatch(() => ViewModel.Mode = (micOk && _llm != null) ? "En direct" : "Mode démo");
+    }
+
+    // A finalized phrase: show it verbatim, then simplify in the background (burst).
+    private async Task OnPhraseAsync(string text)
+    {
+        Dispatch(() => ViewModel.Verbatim = text);
+        if (_llm == null) return;
         try
         {
-            var path = Environment.GetEnvironmentVariable("SCREENSHOT_PATH")
-                       ?? Path.Combine(Environment.CurrentDirectory, "screenshot.png");
-
-            var rtb = new RenderTargetBitmap();
-            await rtb.RenderAsync(RootGrid);
-            var pixels = await rtb.GetPixelsAsync();
-
-            using var stream = new InMemoryRandomAccessStream();
-            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-            encoder.SetPixelData(
-                BitmapPixelFormat.Bgra8,
-                BitmapAlphaMode.Premultiplied,
-                (uint)rtb.PixelWidth,
-                (uint)rtb.PixelHeight,
-                96, 96,
-                pixels.ToArray());
-            await encoder.FlushAsync();
-
-            using (var fs = File.Create(path))
-            {
-                stream.Seek(0);
-                await stream.AsStreamForRead().CopyToAsync(fs);
-            }
-
-            Console.WriteLine($"Wrote {path} ({rtb.PixelWidth}x{rtb.PixelHeight})");
+            var simple = await _llm.SimplifyAsync(Prompts.FrenchFalc, text);
+            if (!string.IsNullOrWhiteSpace(simple))
+                Dispatch(() => ViewModel.Simplified = simple);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine("CAPTURE FAILED: " + ex);
-            Environment.ExitCode = 3;
-        }
-        finally
-        {
-            Application.Current.Exit();
-        }
+        catch { /* skip a bad phrase rather than crash the caption loop */ }
+    }
+
+    private void Dispatch(Action action) => DispatcherQueue.TryEnqueue(() => action());
+
+    private static string ModelPath() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "LiveLinguist", "qwen3-1.7b-easylang-fr-Q4_K_M.gguf");
+
+    private async Task CaptureAsync(string path)
+    {
+        var rtb = new RenderTargetBitmap();
+        await rtb.RenderAsync(RootGrid);
+        var pixels = await rtb.GetPixelsAsync();
+
+        using var stream = new InMemoryRandomAccessStream();
+        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
+        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
+            (uint)rtb.PixelWidth, (uint)rtb.PixelHeight, 96, 96, pixels.ToArray());
+        await encoder.FlushAsync();
+
+        using var fs = File.Create(path);
+        stream.Seek(0);
+        await stream.AsStreamForRead().CopyToAsync(fs);
     }
 }
