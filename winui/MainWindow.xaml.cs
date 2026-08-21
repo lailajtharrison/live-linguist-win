@@ -72,9 +72,17 @@ public sealed partial class MainWindow : Window
 
     private void Dispatch(Action action) => DispatcherQueue.TryEnqueue(() => action());
 
-    private static string ModelPath() => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "LiveLinguist", "qwen3-1.7b-easylang-fr-Q4_K_M.gguf");
+    private static string ModelPath()
+    {
+        const string name = "qwen3-1.7b-easylang-fr-Q4_K_M.gguf";
+        // Easiest for the user: drop the model right next to the exe.
+        var beside = Path.Combine(AppContext.BaseDirectory, name);
+        if (File.Exists(beside)) return beside;
+        // Fallback: the per-user data folder (what setup.ps1 populates).
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "LiveLinguist", name);
+    }
 
     private async Task CaptureAsync(string path)
     {
