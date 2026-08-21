@@ -8,6 +8,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="72" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="46" />
         </Grid.RowDefinitions>
 
@@ -37,7 +38,6 @@
         <!-- Body -->
         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
                     MaxWidth="1000" Width="1000" Spacing="16">
-
             <Border Background="#FF14181E" CornerRadius="14" Padding="36,26"
                     BorderBrush="#FF20262E" BorderThickness="1">
                 <StackPanel Spacing="8">
@@ -47,7 +47,6 @@
                                Foreground="#FFDFE4EA" TextWrapping="Wrap" FontFamily="Segoe UI" />
                 </StackPanel>
             </Border>
-
             <Border Background="#FF0D1F18" CornerRadius="14" Padding="36,30"
                     BorderBrush="#FF244A40" BorderThickness="1">
                 <StackPanel Spacing="10">
@@ -59,8 +58,20 @@
             </Border>
         </StackPanel>
 
+        <!-- Type-to-test bar (no mic needed) -->
+        <Grid Grid.Row="2" Padding="24,4,24,16" HorizontalAlignment="Center" MaxWidth="1000" Width="1000">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="InputBox" Grid.Column="0" Height="48" FontSize="16"
+                     PlaceholderText="Écrivez ou collez du français, puis « Simplifier »…" />
+            <Button Grid.Column="1" Margin="12,0,0,0" Height="48" Padding="18,0"
+                    Content="Simplifier" Click="OnSimplifyClick" />
+        </Grid>
+
         <!-- Status bar -->
-        <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
+        <Border Grid.Row="3" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
             <Grid Padding="28,0">
                 <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"
                            FontFamily="Segoe UI" Text="Sur l'appareil · Qwen3-1.7B · rien ne quitte ce PC" />

@@ -70,6 +70,13 @@ public sealed partial class MainWindow : Window
         catch { /* skip a bad phrase rather than crash the caption loop */ }
     }
 
+    // Type-to-test: simplify whatever is typed (works without a mic/speech pack).
+    private void OnSimplifyClick(object sender, RoutedEventArgs e)
+    {
+        var text = InputBox.Text;
+        if (!string.IsNullOrWhiteSpace(text)) _ = OnPhraseAsync(text);
+    }
+
     private void Dispatch(Action action) => DispatcherQueue.TryEnqueue(() => action());
 
     private static string ModelPath()
