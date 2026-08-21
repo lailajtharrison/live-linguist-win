@@ -18,18 +18,17 @@
                            Foreground="#FFEAF0F6" FontFamily="Segoe UI" />
                 <Border Background="#FF1A1F26" BorderBrush="#FF2A3038" BorderThickness="1"
                         CornerRadius="14" Padding="12,6" VerticalAlignment="Center">
-                    <TextBlock Text="Deutsch · Leichte Sprache" FontSize="13" FontWeight="Medium"
+                    <TextBlock Text="Français · FALC" FontSize="13" FontWeight="Medium"
                                Foreground="#FFB8C0CC" FontFamily="Segoe UI" />
                 </Border>
             </StackPanel>
-            <!-- Live indicator: dot + soft outer ring -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Spacing="8">
                 <Grid Width="16" Height="16" VerticalAlignment="Center">
                     <Ellipse Width="16" Height="16" Fill="#40FF4D4F" />
                     <Ellipse Width="8" Height="8" Fill="#FFFF4D4F" />
                 </Grid>
-                <TextBlock Text="Live" FontSize="13" FontWeight="SemiBold" Foreground="#FFFF6B6D"
+                <TextBlock Text="En direct" FontSize="13" FontWeight="SemiBold" Foreground="#FFFF6B6D"
                            FontFamily="Segoe UI" VerticalAlignment="Center" CharacterSpacing="40" />
             </StackPanel>
         </Grid>
@@ -38,27 +37,27 @@
         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
                     MaxWidth="1000" Width="1000" Spacing="16">
 
-            <!-- Verbatim (what was heard) — recessive but legible -->
+            <!-- Verbatim: the live spoken transcript (with fillers) -->
             <Border Background="#FF14181E" CornerRadius="14" Padding="36,26"
                     BorderBrush="#FF20262E" BorderThickness="1">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="GEHÖRT" FontSize="13" FontWeight="Bold"
-                               Foreground="#FFB8C0CC" FontFamily="Segoe UI" CharacterSpacing="100" />
-                    <TextBlock FontSize="23" LineHeight="34" Foreground="#FFDFE4EA"
+                    <TextBlock Text="ENTENDU" FontSize="13" FontWeight="Bold"
+                               Foreground="#FFB8C0CC" FontFamily="Segoe UI" CharacterSpacing="140" />
+                    <TextBlock FontSize="22" LineHeight="34" Foreground="#FFDFE4EA"
                                TextWrapping="Wrap" FontFamily="Segoe UI"
-                               Text="Der Vorstand hat beschlossen, die Sitzung aufgrund der anhaltenden technischen Schwierigkeiten auf den folgenden Werktag zu verschieben." />
+                               Text="euh du coup le tour de potier faut centrer la motte d'argile avant tout sinon ben ça part dans tous les sens et là on mouille les mains et on appuie fort vers le centre" />
                 </StackPanel>
             </Border>
 
-            <!-- Simplified (easy language) — elevated hero surface -->
+            <!-- Simplified: easy French (FALC), from the on-device 1.7B model -->
             <Border Background="#FF0D1F18" CornerRadius="14" Padding="36,30"
                     BorderBrush="#FF244A40" BorderThickness="1">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="EINFACHE SPRACHE" FontSize="13" FontWeight="Bold"
-                               Foreground="#FF5EEAD4" FontFamily="Segoe UI" CharacterSpacing="100" />
-                    <TextBlock FontSize="44" FontWeight="Bold" LineHeight="55"
+                    <TextBlock Text="LANGAGE SIMPLE · FALC" FontSize="13" FontWeight="Bold"
+                               Foreground="#FF5EEAD4" FontFamily="Segoe UI" CharacterSpacing="140" />
+                    <TextBlock FontSize="34" FontWeight="Bold" LineHeight="46"
                                Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI"
-                               Text="Die Sitzung ist heute nicht. Es gibt technische Probleme. Die Sitzung ist morgen." />
+                               Text="Avant de faire le tour de potier, centrez la motte d'argile. Sinon, l'argile part dans tous les sens. Ensuite, mouillez vos mains. Appuyez fort vers le centre." />
                 </StackPanel>
             </Border>
         </StackPanel>
@@ -67,9 +66,9 @@
         <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
             <Grid Padding="28,0">
                 <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"
-                           FontFamily="Segoe UI" Text="On-device · Qwen3-0.6B · nichts verlässt diesen PC" />
+                           FontFamily="Segoe UI" Text="Sur l'appareil · Qwen3-1.7B · rien ne quitte ce PC" />
                 <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13"
-                           Foreground="#FF8B93A0" FontFamily="Segoe UI" Text="Latenz ~1.2 s" />
+                           Foreground="#FF8B93A0" FontFamily="Segoe UI" Text="Latence ~1,8 s" />
             </Grid>
         </Border>
     </Grid>
