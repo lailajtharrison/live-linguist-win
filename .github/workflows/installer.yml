@@ -1,0 +1,70 @@
+name: installer
+
+# Build LiveLinguist-fr-Setup.exe: self-contained app + native llama DLLs + the
+# model, wrapped in an Inno Setup wizard (per-user, Start-menu + desktop shortcut).
+on:
+  workflow_dispatch:
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup MSBuild (Visual Studio)
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build app (self-contained, x64)
+        run: |
+          msbuild winui\LiveLinguistWinUI.csproj -t:restore -p:Configuration=Release -p:Platform=x64 -nologo
+          msbuild winui\LiveLinguistWinUI.csproj -t:build -p:Configuration=Release -p:Platform=x64 -nologo
+
+      - name: Fetch Windows x64 native llama DLLs
+        shell: pwsh
+        run: nuget install LLamaSharp.Backend.Cpu -Version 0.24.0 -OutputDirectory natives -NonInteractive
+
+      - name: Assemble app folder (app + natives)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter LiveLinguistWinUI.exe winui\bin | Select-Object -First 1
+          if (-not $exe) { throw "app exe not found" }
+          $out = "bundle\LiveLinguist"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item "$($exe.Directory.FullName)\*" $out -Recurse -Force
+          $dlls = Get-ChildItem -Recurse -Path natives -Filter *.dll |
+            Where-Object { $_.FullName -match 'win-x64\\native' -and
+                           ($_.FullName -match '\\avx2\\' -or $_.FullName -notmatch '\\(avx|avx512|noavx)\\') }
+          foreach ($f in $dlls) { Copy-Item $f.FullName $out -Force }
+
+      - name: Download model from release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          New-Item -ItemType Directory -Force -Path model | Out-Null
+          gh release download v0.1-fr --repo ${{ github.repository }} --pattern "*.gguf" --dir model
+          Get-ChildItem model | Select-Object Name,Length
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\installer.iss
+          $exe = Get-ChildItem -Recurse -Filter LiveLinguist-fr-Setup.exe | Select-Object -First 1
+          Write-Host ("installer: {0:N0} MB" -f ($exe.Length/1MB))
+          Copy-Item $exe.FullName LiveLinguist-fr-Setup.exe -Force
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiveLinguist-fr-Setup
+          path: LiveLinguist-fr-Setup.exe
+          if-no-files-found: error
