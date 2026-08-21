@@ -1,0 +1,68 @@
+name: bundle
+
+# Build a ready-to-run Windows bundle (self-contained app + native llama DLLs +
+# setup helper) using the GitHub Actions windows-latest runner as the build box.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'winui/**'
+      - 'scripts/setup.ps1'
+      - '.github/workflows/bundle.yml'
+
+jobs:
+  bundle:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup MSBuild (Visual Studio)
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore & build (self-contained, x64)
+        run: |
+          msbuild winui\LiveLinguistWinUI.csproj -t:restore -p:Configuration=Release -p:Platform=x64 -nologo
+          msbuild winui\LiveLinguistWinUI.csproj -t:build -p:Configuration=Release -p:Platform=x64 -nologo
+
+      - name: Fetch Windows x64 native llama DLLs
+        shell: pwsh
+        run: nuget install LLamaSharp.Backend.Cpu -Version 0.24.0 -OutputDirectory natives -NonInteractive
+
+      - name: Assemble bundle
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter LiveLinguistWinUI.exe winui\bin | Select-Object -First 1
+          if (-not $exe) { throw "app exe not found" }
+          $appSrc = $exe.Directory.FullName
+          $out = "bundle\LiveLinguist"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item "$appSrc\*" $out -Recurse -Force
+
+          # Native libs: take avx2 variants + any non-variant DLLs under win-x64/native.
+          $dlls = Get-ChildItem -Recurse -Path natives -Filter *.dll |
+            Where-Object { $_.FullName -match 'win-x64\\native' -and
+                           ($_.FullName -match '\\avx2\\' -or $_.FullName -notmatch '\\(avx|avx512|noavx)\\') }
+          if (-not $dlls) { throw "no native llama DLLs found in the backend package" }
+          foreach ($f in $dlls) { Copy-Item $f.FullName $out -Force }
+          Write-Host "native DLLs bundled:"; $dlls | Select-Object -ExpandProperty Name -Unique
+
+          Copy-Item RUN_ON_WINDOWS.md bundle\ -Force
+          Copy-Item scripts\setup.ps1 bundle\ -Force
+
+          Compress-Archive -Path bundle\* -DestinationPath LiveLinguist-fr-bundle.zip -Force
+          $z = (Get-Item LiveLinguist-fr-bundle.zip).Length / 1MB
+          Write-Host ("bundle zip: {0:N1} MB" -f $z)
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiveLinguist-fr-bundle
+          path: LiveLinguist-fr-bundle.zip
+          if-no-files-found: error
