@@ -9,6 +9,7 @@
             <RowDefinition Height="72" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="46" />
         </Grid.RowDefinitions>
 
@@ -25,12 +26,9 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Spacing="8">
-                <Grid Width="16" Height="16" VerticalAlignment="Center">
-                    <Ellipse Width="16" Height="16" Fill="#40FF4D4F" />
-                    <Ellipse Width="8" Height="8" Fill="#FFFF4D4F" />
-                </Grid>
+                <Ellipse Width="10" Height="10" Fill="#FF7A8594" VerticalAlignment="Center" />
                 <TextBlock Text="{x:Bind ViewModel.Mode, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
-                           Foreground="#FFFF6B6D" FontFamily="Segoe UI" VerticalAlignment="Center"
+                           Foreground="#FF9AA6B4" FontFamily="Segoe UI" VerticalAlignment="Center"
                            CharacterSpacing="40" />
             </StackPanel>
         </Grid>
@@ -41,7 +39,7 @@
             <Border Background="#FF14181E" CornerRadius="14" Padding="36,26"
                     BorderBrush="#FF20262E" BorderThickness="1">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="ENTENDU" FontSize="13" FontWeight="Bold"
+                    <TextBlock Text="VOTRE TEXTE" FontSize="13" FontWeight="Bold"
                                Foreground="#FFB8C0CC" FontFamily="Segoe UI" CharacterSpacing="140" />
                     <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}" FontSize="22" LineHeight="34"
                                Foreground="#FFDFE4EA" TextWrapping="Wrap" FontFamily="Segoe UI" />
@@ -58,20 +56,31 @@
             </Border>
         </StackPanel>
 
-        <!-- Type-to-test bar (no mic needed) -->
-        <Grid Grid.Row="2" Padding="24,4,24,16" HorizontalAlignment="Center" MaxWidth="1000" Width="1000">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBox x:Name="InputBox" Grid.Column="0" Height="48" FontSize="16"
-                     PlaceholderText="Écrivez ou collez du français, puis « Simplifier »…" />
-            <Button Grid.Column="1" Margin="12,0,0,0" Height="48" Padding="18,0"
-                    Content="Simplifier" Click="OnSimplifyClick" />
-        </Grid>
+        <!-- Mic hint (self-explanatory: why demo, how to enable the mic) -->
+        <Border Grid.Row="2" Margin="24,0,24,8" HorizontalAlignment="Center" MaxWidth="1000" Width="1000"
+                Background="#1A5EEAD4" BorderBrush="#335EEAD4" BorderThickness="1" CornerRadius="10" Padding="16,10">
+            <TextBlock Text="{x:Bind ViewModel.Hint, Mode=OneWay}" FontSize="14" LineHeight="21"
+                       Foreground="#FFCFF3EA" TextWrapping="Wrap" FontFamily="Segoe UI" />
+        </Border>
+
+        <!-- Type-to-simplify (the obvious primary action) -->
+        <StackPanel Grid.Row="3" Margin="24,0,24,16" HorizontalAlignment="Center" MaxWidth="1000" Width="1000" Spacing="6">
+            <TextBlock Text="Écrivez ou collez du français, puis cliquez sur « Simplifier »"
+                       FontSize="13" Foreground="#FF9AA6B4" FontFamily="Segoe UI" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="InputBox" Grid.Column="0" Height="48" FontSize="16"
+                         PlaceholderText="Par exemple : « Il faudrait que vous soyez présent avant qu'il ne parte. »" />
+                <Button Grid.Column="1" Margin="12,0,0,0" Height="48" Padding="22,0"
+                        Content="Simplifier" Click="OnSimplifyClick" />
+            </Grid>
+        </StackPanel>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
+        <Border Grid.Row="4" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
             <Grid Padding="28,0">
                 <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"
                            FontFamily="Segoe UI" Text="Sur l'appareil · Qwen3-1.7B · rien ne quitte ce PC" />

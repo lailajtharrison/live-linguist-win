@@ -5,16 +5,19 @@ namespace LiveLinguistWinUI.ViewModels;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    // Demo defaults (also what CI screenshots): real 1.7B output on the potter clip.
-    private string _verbatim =
-        "euh du coup le tour de potier faut centrer la motte d'argile avant tout sinon ben ça part dans tous les sens et là on mouille les mains et on appuie fort vers le centre";
-    private string _simplified =
-        "Avant de faire le tour de potier, centrez la motte d'argile. Sinon, l'argile part dans tous les sens. Ensuite, mouillez vos mains. Appuyez fort vers le centre.";
-    private string _mode = "En direct";
+    // First-run state: guidance, not a confusing pre-filled sample.
+    private string _verbatim = "Votre texte apparaîtra ici.";
+    private string _simplified = "La version simple apparaîtra ici.";
+    private string _mode = "Micro éteint";
+    // The mic hint. Default = the "mic off" instructions (also what CI screenshots).
+    private string _hint =
+        "🎤  Le micro n'est pas activé. Écrivez ci-dessous pour essayer tout de suite.\n" +
+        "Pour parler en français : Paramètres Windows → Heure et langue → Voix → ajouter « Français (France) », puis rouvrez l'application.";
 
     public string Verbatim { get => _verbatim; set => Set(ref _verbatim, value); }
     public string Simplified { get => _simplified; set => Set(ref _simplified, value); }
     public string Mode { get => _mode; set => Set(ref _mode, value); }
+    public string Hint { get => _hint; set => Set(ref _hint, value); }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

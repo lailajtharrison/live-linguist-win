@@ -53,7 +53,24 @@ public sealed partial class MainWindow : Window
         _speech.Phrase += text => _ = OnPhraseAsync(text);
         var micOk = await _speech.StartAsync();
 
-        Dispatch(() => ViewModel.Mode = (micOk && _llm != null) ? "En direct" : "Mode démo");
+        Dispatch(() =>
+        {
+            if (micOk && _llm != null)
+            {
+                ViewModel.Mode = "En direct";
+                ViewModel.Hint = "🎤  Micro activé — parlez en français, ou écrivez ci-dessous.";
+                ViewModel.Verbatim = "Parlez en français, ou écrivez ci-dessous.";
+            }
+            else if (_llm == null)
+            {
+                ViewModel.Mode = "Modèle manquant";
+                ViewModel.Hint = "⚠️  Le modèle n'a pas été trouvé — réinstallez l'application.";
+            }
+            else
+            {
+                ViewModel.Mode = "Micro éteint"; // keeps the default mic-off instructions
+            }
+        });
     }
 
     // A finalized phrase: show it verbatim, then simplify in the background (burst).
