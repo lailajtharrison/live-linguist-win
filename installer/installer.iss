@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=Live Linguist (Français)
-AppVersion=0.1
+AppVersion=0.2
 AppPublisher=Live Linguist
 DefaultDirName={autopf}\LiveLinguist
 DefaultGroupName=Live Linguist
