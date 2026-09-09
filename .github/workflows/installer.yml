@@ -8,6 +8,8 @@ on:
 jobs:
   installer:
     runs-on: windows-latest
+    permissions:
+      contents: write   # publish the installer as a release asset (bypasses the Actions artifact-storage quota)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,9 +64,16 @@ jobs:
           Write-Host ("installer: {0:N0} MB" -f ($exe.Length/1MB))
           Copy-Item $exe.FullName LiveLinguist-fr-Setup.exe -Force
 
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: LiveLinguist-fr-Setup
-          path: LiveLinguist-fr-Setup.exe
-          if-no-files-found: error
+      # Publish to a Release rather than an artifact: release assets do not count
+      # against the Actions artifact-storage quota, and give a stable download URL.
+      - name: Publish installer to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete v0.3-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
+          gh release create v0.3-fr LiveLinguist-fr-Setup.exe `
+            --repo ${{ github.repository }} `
+            --target ${{ github.sha }} `
+            --title "Live Linguist - French (v0.3)" `
+            --notes "Fixes the stray <think> text in the output box, and stops the app from answering questions (it now only simplifies)."
