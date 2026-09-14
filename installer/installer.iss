@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=Live Linguist (Français)
-AppVersion=0.4
+AppVersion=0.5
 AppPublisher=Live Linguist
 DefaultDirName={autopf}\LiveLinguist
 DefaultGroupName=Live Linguist
@@ -23,6 +23,8 @@ WizardStyle=modern
 Source: "..\bundle\LiveLinguist\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 ; The model, placed next to the exe so the app finds it automatically
 Source: "..\model\qwen3-1.7b-easylang-fr-Q4_K_M.gguf"; DestDir: "{app}"; Flags: ignoreversion
+; Whisper STT model for the "Réunion / vidéo" (loopback) audio source
+Source: "..\model\ggml-base.bin"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Live Linguist"; Filename: "{app}\LiveLinguistWinUI.exe"

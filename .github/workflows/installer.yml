@@ -31,6 +31,10 @@ jobs:
         shell: pwsh
         run: nuget install LLamaSharp.Backend.Cpu -Version 0.24.0 -OutputDirectory natives -NonInteractive
 
+      - name: Fetch Windows x64 native Whisper DLLs
+        shell: pwsh
+        run: nuget install Whisper.net.Runtime -Version 1.8.1 -OutputDirectory natives -NonInteractive
+
       - name: Assemble app folder (app + natives)
         shell: pwsh
         run: |
@@ -43,6 +47,10 @@ jobs:
             Where-Object { $_.FullName -match 'win-x64\\native' -and
                            ($_.FullName -match '\\avx2\\' -or $_.FullName -notmatch '\\(avx|avx512|noavx)\\') }
           foreach ($f in $dlls) { Copy-Item $f.FullName $out -Force }
+          # Whisper native libs (single non-feature-split set under build\win-x64).
+          $wh = Get-ChildItem -Recurse -Path natives -Filter *.dll |
+            Where-Object { $_.FullName -match 'Whisper\.net\.Runtime.*build\\win-x64' }
+          foreach ($f in $wh) { Copy-Item $f.FullName $out -Force }
 
       - name: Download model from release
         shell: pwsh
@@ -51,6 +59,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path model | Out-Null
           gh release download v0.1-fr --repo ${{ github.repository }} --pattern "*.gguf" --dir model
+          gh release download v0.1-fr --repo ${{ github.repository }} --pattern "ggml-base.bin" --dir model
           Get-ChildItem model | Select-Object Name,Length
 
       - name: Install Inno Setup
@@ -71,9 +80,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete v0.4-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
-          gh release create v0.4-fr LiveLinguist-fr-Setup.exe `
+          gh release delete v0.5-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
+          gh release create v0.5-fr LiveLinguist-fr-Setup.exe `
             --repo ${{ github.repository }} `
             --target ${{ github.sha }} `
-            --title "Live Linguist - French (v0.4)" `
-            --notes "Retrained model (question-augmented): the app no longer answers or invents on questions, it only simplifies them (0/48 in eval vs 17/48 before). Also removes the stray <think> text."
+            --title "Live Linguist - French (v0.5)" `
+            --notes "Adds the 'Réunion / vidéo' audio source: captions French coming out of the speakers (a Teams/Zoom partner or a video) via Whisper, not just the microphone. Includes the v0.4 model fix (no answering/inventing on questions)."
