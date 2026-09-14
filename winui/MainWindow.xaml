@@ -23,6 +23,14 @@
                     <TextBlock Text="Français · FALC" FontSize="13" FontWeight="Medium"
                                Foreground="#FFB8C0CC" FontFamily="Segoe UI" />
                 </Border>
+                <!-- Audio source: the mic (in-person) vs the speakers (a Teams/Zoom
+                     partner or a video — what a call actually needs). -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="14" Margin="8,0,0,0">
+                    <RadioButton x:Name="SourceMic" GroupName="src" Content="🎤 Micro" IsChecked="True"
+                                 Checked="OnSourceChanged" Foreground="#FFB8C0CC" FontSize="13" FontFamily="Segoe UI" />
+                    <RadioButton x:Name="SourceLoopback" GroupName="src" Content="🔊 Réunion / vidéo"
+                                 Checked="OnSourceChanged" Foreground="#FFB8C0CC" FontSize="13" FontFamily="Segoe UI" />
+                </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Spacing="8">

@@ -6,8 +6,10 @@ using Windows.Media.SpeechRecognition;
 namespace LiveLinguistWinUI.Services;
 
 /// On-device continuous French speech recognition (Windows built-in).
+/// Captures the MICROPHONE — the person speaking in the room (in-person use).
+/// For captioning a Teams/Zoom partner or a video, use LoopbackTranscriber instead.
 /// Fires Hypothesis (partial, live) and Phrase (finalized) events.
-public sealed class SpeechSource : IDisposable
+public sealed class SpeechSource : ISpeechSource
 {
     private SpeechRecognizer? _recognizer;
 
@@ -44,8 +46,19 @@ public sealed class SpeechSource : IDisposable
         }
     }
 
+    public async Task StopAsync()
+    {
+        try
+        {
+            if (_recognizer?.ContinuousRecognitionSession != null)
+                await _recognizer.ContinuousRecognitionSession.StopAsync();
+        }
+        catch { /* best effort */ }
+    }
+
     public void Dispose()
     {
         try { _recognizer?.Dispose(); } catch { /* best effort */ }
+        _recognizer = null;
     }
 }

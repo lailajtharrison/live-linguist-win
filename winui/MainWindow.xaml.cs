@@ -15,8 +15,10 @@ public sealed partial class MainWindow : Window
 {
     public MainViewModel ViewModel { get; } = new();
 
-    private SpeechSource? _speech;
+    private ISpeechSource? _speech;
     private LlamaSimplifier? _llm;
+    private AudioSource _source = AudioSource.Microphone;
+    private bool _ready;   // suppress the RadioButton's initial Checked during init
 
     public MainWindow()
     {
@@ -39,7 +41,7 @@ public sealed partial class MainWindow : Window
         await GoLiveAsync();
     }
 
-    // Wire mic -> simplifier -> UI. Degrades to demo mode if either is missing.
+    // Load the LLM once, then start the selected audio source.
     private async Task GoLiveAsync()
     {
         var modelPath = ModelPath();
@@ -48,29 +50,75 @@ public sealed partial class MainWindow : Window
             try { _llm = LlamaSimplifier.Load(modelPath); } catch { _llm = null; }
         }
 
-        _speech = new SpeechSource();
-        _speech.Hypothesis += text => Dispatch(() => ViewModel.Verbatim = text);
-        _speech.Phrase += text => _ = OnPhraseAsync(text);
-        var micOk = await _speech.StartAsync();
-
-        Dispatch(() =>
+        if (_llm == null)
         {
-            if (micOk && _llm != null)
-            {
-                ViewModel.Mode = "En direct";
-                ViewModel.Hint = "🎤  Micro activé — parlez en français, ou écrivez ci-dessous.";
-                ViewModel.Verbatim = "Parlez en français, ou écrivez ci-dessous.";
-            }
-            else if (_llm == null)
+            Dispatch(() =>
             {
                 ViewModel.Mode = "Modèle manquant";
                 ViewModel.Hint = "⚠️  Le modèle n'a pas été trouvé — réinstallez l'application.";
+            });
+            _ready = true;
+            return;
+        }
+
+        await StartSourceAsync(_source);
+        _ready = true;
+    }
+
+    // Start (or restart) capture from the chosen source, wiring it into the pipeline.
+    private async Task StartSourceAsync(AudioSource source)
+    {
+        // tear down any current source first
+        if (_speech != null)
+        {
+            try { await _speech.StopAsync(); } catch { }
+            _speech.Dispose();
+            _speech = null;
+        }
+        _source = source;
+
+        _speech = source == AudioSource.SystemPlayback
+            ? new LoopbackTranscriber(WhisperModelPath())
+            : new SpeechSource();
+        _speech.Hypothesis += text => Dispatch(() => ViewModel.Verbatim = text);
+        _speech.Phrase += text => _ = OnPhraseAsync(text);
+
+        var ok = await _speech.StartAsync();
+        Dispatch(() =>
+        {
+            if (ok && source == AudioSource.SystemPlayback)
+            {
+                ViewModel.Mode = "En direct · Réunion/vidéo";
+                ViewModel.Hint = "🔊  J'écoute le son de l'ordinateur (Teams, Zoom, vidéo). " +
+                                 "Le français que vous entendez sera simplifié ci-dessus.";
+                ViewModel.Verbatim = "En attente du son de la réunion ou de la vidéo…";
+            }
+            else if (ok)
+            {
+                ViewModel.Mode = "En direct · Micro";
+                ViewModel.Hint = "🎤  Micro activé — parlez en français, ou écrivez ci-dessous.";
+                ViewModel.Verbatim = "Parlez en français, ou écrivez ci-dessous.";
+            }
+            else if (source == AudioSource.SystemPlayback)
+            {
+                ViewModel.Mode = "Audio indisponible";
+                ViewModel.Hint = "⚠️  Le modèle audio « ggml-base.bin » est introuvable, " +
+                                 "ou aucun son ne joue. Écrivez ci-dessous pour tester.";
             }
             else
             {
                 ViewModel.Mode = "Micro éteint"; // keeps the default mic-off instructions
             }
         });
+    }
+
+    // User flipped the mic / speakers toggle.
+    private void OnSourceChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_ready || _llm == null) return;
+        var wanted = (sender == SourceLoopback) ? AudioSource.SystemPlayback : AudioSource.Microphone;
+        if (wanted == _source) return;
+        _ = StartSourceAsync(wanted);
     }
 
     // A finalized phrase: show it verbatim, then simplify in the background (burst).
@@ -103,6 +151,18 @@ public sealed partial class MainWindow : Window
         var beside = Path.Combine(AppContext.BaseDirectory, name);
         if (File.Exists(beside)) return beside;
         // Fallback: the per-user data folder (what setup.ps1 populates).
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "LiveLinguist", name);
+    }
+
+    // Whisper STT model (for the "Réunion / vidéo" loopback source). Same lookup as
+    // the LLM: next to the exe first, then the per-user data folder.
+    private static string WhisperModelPath()
+    {
+        const string name = "ggml-base.bin";
+        var beside = Path.Combine(AppContext.BaseDirectory, name);
+        if (File.Exists(beside)) return beside;
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "LiveLinguist", name);
