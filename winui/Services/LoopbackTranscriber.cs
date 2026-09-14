@@ -57,6 +57,15 @@ public sealed class LoopbackTranscriber : ISpeechSource
             {
                 BufferDuration = TimeSpan.FromSeconds(30),
                 DiscardOnBufferOverflow = true,
+                // NAudio defaults ReadFully to true, which makes Read() pad with
+                // silence and never return 0. The pump then never waits: it spins at
+                // ~43,000 iterations/s (measured) instead of the ~33/s real time
+                // supplies, burning a full core and shredding each utterance into
+                // fragments padded with synthetic silence — 193 chunks out of a 16 s
+                // clip instead of 4, so Whisper only ever sees near-silence and no
+                // caption is produced. Returning 0 on an empty buffer is what paces
+                // the loop against the audio clock.
+                ReadFully = false,
             };
             _capture.DataAvailable += (_, e) => _buffer!.AddSamples(e.Buffer, 0, e.BytesRecorded);
 
