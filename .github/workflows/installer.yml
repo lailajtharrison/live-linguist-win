@@ -71,9 +71,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete v0.3-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
-          gh release create v0.3-fr LiveLinguist-fr-Setup.exe `
+          gh release delete v0.4-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
+          gh release create v0.4-fr LiveLinguist-fr-Setup.exe `
             --repo ${{ github.repository }} `
             --target ${{ github.sha }} `
-            --title "Live Linguist - French (v0.3)" `
-            --notes "Fixes the stray <think> text in the output box, and stops the app from answering questions (it now only simplifies)."
+            --title "Live Linguist - French (v0.4)" `
+            --notes "Retrained model (question-augmented): the app no longer answers or invents on questions, it only simplifies them (0/48 in eval vs 17/48 before). Also removes the stray <think> text."
