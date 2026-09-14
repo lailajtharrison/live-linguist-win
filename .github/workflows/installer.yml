@@ -80,9 +80,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete v0.6-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
-          gh release create v0.6-fr LiveLinguist-fr-Setup.exe `
+          gh release delete v0.7-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
+          gh release create v0.7-fr LiveLinguist-fr-Setup.exe `
             --repo ${{ github.repository }} `
             --target ${{ github.sha }} `
-            --title "Live Linguist - French (v0.6)" `
-            --notes "Adds the 'Réunion / vidéo' audio source: captions French coming out of the speakers (a Teams/Zoom partner or a video) via Whisper, not just the microphone. Includes the v0.4 model fix (no answering/inventing on questions)."
+            --title "Live Linguist - French (v0.7)" `
+            --notes "Fixes 'Réunion / vidéo', which started correctly but never produced a caption and pegged a CPU core. The audio pump ran about 1300x faster than audio arrives, shredding every utterance into silence-padded fragments Whisper could not read. Captioning a French video or Teams call now works."
