@@ -102,7 +102,7 @@ public sealed partial class MainWindow : Window
             else if (source == AudioSource.SystemPlayback)
             {
                 ViewModel.Mode = "Audio indisponible";
-                ViewModel.Hint = "⚠️  Le modèle audio « ggml-base.bin » est introuvable, " +
+                ViewModel.Hint = "⚠️  Le modèle audio « ggml-small-q5_1.bin » est introuvable, " +
                                  "ou aucun son ne joue. Écrivez ci-dessous pour tester.";
             }
             else
@@ -160,7 +160,7 @@ public sealed partial class MainWindow : Window
     // the LLM: next to the exe first, then the per-user data folder.
     private static string WhisperModelPath()
     {
-        const string name = "ggml-base.bin";
+        const string name = "ggml-small-q5_1.bin";
         var beside = Path.Combine(AppContext.BaseDirectory, name);
         if (File.Exists(beside)) return beside;
         return Path.Combine(

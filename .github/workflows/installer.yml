@@ -59,7 +59,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path model | Out-Null
           gh release download v0.1-fr --repo ${{ github.repository }} --pattern "*.gguf" --dir model
-          gh release download v0.1-fr --repo ${{ github.repository }} --pattern "ggml-base.bin" --dir model
+          gh release download v0.1-fr --repo ${{ github.repository }} --pattern "ggml-small-q5_1.bin" --dir model
           Get-ChildItem model | Select-Object Name,Length
 
       - name: Install Inno Setup
@@ -80,9 +80,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete v0.5-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
-          gh release create v0.5-fr LiveLinguist-fr-Setup.exe `
+          gh release delete v0.6-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
+          gh release create v0.6-fr LiveLinguist-fr-Setup.exe `
             --repo ${{ github.repository }} `
             --target ${{ github.sha }} `
-            --title "Live Linguist - French (v0.5)" `
+            --title "Live Linguist - French (v0.6)" `
             --notes "Adds the 'Réunion / vidéo' audio source: captions French coming out of the speakers (a Teams/Zoom partner or a video) via Whisper, not just the microphone. Includes the v0.4 model fix (no answering/inventing on questions)."
