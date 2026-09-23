@@ -42,8 +42,17 @@ public sealed class LlamaSimplifier : IDisposable
         // The canonical no-think form is to prefill an already-closed think block on
         // the assistant turn. (llama-server applied this for us during eval, which is
         // why the batch outputs were clean and the app's were not.)
+        // The worked examples sit between the system turn and the real one, as
+        // completed user/assistant exchanges in the same "Original:/Rewritten:"
+        // shape the live turn uses.
+        var shots = new StringBuilder();
+        foreach (var (original, rewritten) in Prompts.FrenchFalcExamples)
+            shots.Append($"<|im_start|>user\nOriginal: {original}\nRewritten:<|im_end|>\n")
+                 .Append($"<|im_start|>assistant\n{rewritten}<|im_end|>\n");
+
         var prompt =
             $"<|im_start|>system\n{system}<|im_end|>\n" +
+            shots +
             $"<|im_start|>user\nOriginal: {userText}\nRewritten:<|im_end|>\n" +
             "<|im_start|>assistant\n<think>\n\n</think>\n\n";
 
