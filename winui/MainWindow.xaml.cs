@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
@@ -128,12 +130,23 @@ public sealed partial class MainWindow : Window
         if (_llm == null) return;
         try
         {
+            var sw = Stopwatch.StartNew();
             var simple = await _llm.SimplifyAsync(Prompts.FrenchFalc, text);
+            sw.Stop();
+            var latency = FormatLatency(sw.Elapsed);
             if (!string.IsNullOrWhiteSpace(simple))
-                Dispatch(() => ViewModel.Simplified = simple);
+                Dispatch(() =>
+                {
+                    ViewModel.Simplified = simple;
+                    ViewModel.Latency = latency;
+                });
         }
         catch { /* skip a bad phrase rather than crash the caption loop */ }
     }
+
+    // French decimal comma, one place: "Latence 3,2 s".
+    private static string FormatLatency(TimeSpan elapsed) =>
+        "Latence " + elapsed.TotalSeconds.ToString("0.0", CultureInfo.GetCultureInfo("fr-FR")) + " s";
 
     // Type-to-test: simplify whatever is typed (works without a mic/speech pack).
     private void OnSimplifyClick(object sender, RoutedEventArgs e)

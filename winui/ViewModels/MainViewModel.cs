@@ -14,10 +14,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         "🎤  Le micro n'est pas activé. Écrivez ci-dessous pour essayer tout de suite.\n" +
         "Pour parler en français : Paramètres Windows → Heure et langue → Voix → ajouter « Français (France) », puis rouvrez l'application.";
 
+    // Measured round-trip for the last phrase. Em dash until there is a real
+    // measurement — the old status bar hard-coded "~1,8 s", which was wrong on
+    // any machine slower than the one it was written on.
+    private string _latency = "Latence —";
+
     public string Verbatim { get => _verbatim; set => Set(ref _verbatim, value); }
     public string Simplified { get => _simplified; set => Set(ref _simplified, value); }
     public string Mode { get => _mode; set => Set(ref _mode, value); }
     public string Hint { get => _hint; set => Set(ref _hint, value); }
+    public string Latency { get => _latency; set => Set(ref _latency, value); }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

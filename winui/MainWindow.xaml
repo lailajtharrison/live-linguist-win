@@ -93,7 +93,8 @@
                 <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"
                            FontFamily="Segoe UI" Text="Sur l'appareil · Qwen3-1.7B · rien ne quitte ce PC" />
                 <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13"
-                           Foreground="#FF8B93A0" FontFamily="Segoe UI" Text="Latence ~1,8 s" />
+                           Foreground="#FF8B93A0" FontFamily="Segoe UI"
+                           Text="{x:Bind ViewModel.Latency, Mode=OneWay}" />
             </Grid>
         </Border>
     </Grid>
