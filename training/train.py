@@ -57,7 +57,7 @@ def main():
         num_train_epochs=rc["epochs"],
         learning_rate=rc["lr"],
         lr_scheduler_type="cosine",
-        warmup_ratio=0.03,
+        warmup_steps=20,  # trl>=1.0 dropped warmup_ratio from SFTConfig; ~3% of steps for both recipes
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
         gradient_accumulation_steps=1,
