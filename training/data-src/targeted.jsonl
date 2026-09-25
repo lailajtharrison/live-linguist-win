@@ -1,0 +1,70 @@
+{"why":"short-identity","input":"Merci beaucoup pour votre aide.","output":"Merci beaucoup pour votre aide."}
+{"why":"short-identity","input":"D'accord.","output":"D'accord."}
+{"why":"short-identity","input":"Bonjour à tous.","output":"Bonjour à tous."}
+{"why":"short-identity","input":"Oui, bien sûr.","output":"Oui, bien sûr."}
+{"why":"short-identity","input":"Je suis d'accord avec toi.","output":"Je suis d'accord avec toi."}
+{"why":"short-identity","input":"À demain !","output":"À demain !"}
+{"why":"short-identity","input":"C'est super.","output":"C'est super."}
+{"why":"short-identity","input":"Je ne sais pas.","output":"Je ne sais pas."}
+{"why":"short-identity","input":"Tu as raison.","output":"Tu as raison."}
+{"why":"short-identity","input":"Bonne journée à vous.","output":"Bonne journée à vous."}
+{"why":"short-identity","input":"Il pleut.","output":"Il pleut."}
+{"why":"short-identity","input":"J'ai faim.","output":"J'ai faim."}
+{"why":"short-identity","input":"Moi aussi.","output":"Moi aussi."}
+{"why":"short-identity","input":"Salut, ça va ?","output":"Salut, ça va ?"}
+{"why":"short-identity","input":"Au revoir et merci.","output":"Au revoir et merci."}
+{"why":"short-identity","input":"euh oui voilà c'est ça","output":"Oui, c'est ça."}
+{"why":"short-identity","input":"bon ben merci hein","output":"Merci."}
+{"why":"question-kept","input":"Tu habites où ?","output":"Tu habites où ?"}
+{"why":"question-kept","input":"Vous avez des questions ?","output":"Vous avez des questions ?"}
+{"why":"question-kept","input":"Est-ce que vous m'entendez bien ?","output":"Vous m'entendez bien ?"}
+{"why":"question-kept","input":"C'est quoi ton plat préféré ?","output":"C'est quoi ton plat préféré ?"}
+{"why":"question-kept","input":"Qu'est-ce que tu fais le week-end ?","output":"Tu fais quoi le week-end ?"}
+{"why":"question-kept","input":"Pourquoi est-ce que tu as choisi d'étudier le français ?","output":"Pourquoi as-tu choisi d'étudier le français ?"}
+{"why":"question-kept","input":"Est-ce qu'il y a beaucoup d'étudiants dans ton université ?","output":"Il y a beaucoup d'étudiants dans ton université ?"}
+{"why":"question-kept","input":"Tu pourrais répéter plus lentement s'il te plaît ?","output":"Tu peux répéter plus lentement, s'il te plaît ?"}
+{"why":"question-kept","input":"Comment est-ce qu'on dit ce mot en arabe ?","output":"Comment on dit ce mot en arabe ?"}
+{"why":"question-kept","input":"Vous avez déjà mangé un couscous marocain ?","output":"Vous avez déjà mangé un couscous marocain ?"}
+{"why":"question-kept","input":"Quelle heure est-il chez vous en ce moment ?","output":"Il est quelle heure chez vous maintenant ?"}
+{"why":"question-kept","input":"Est-ce que tu crois que les réseaux sociaux sont dangereux pour les jeunes ?","output":"Pour toi, les réseaux sociaux sont dangereux pour les jeunes ?"}
+{"why":"question-kept","input":"Qu'est-ce que vous pensez de la situation économique actuelle ?","output":"Que pensez-vous de la situation économique aujourd'hui ?"}
+{"why":"question-kept","input":"Est-ce que tu préfères vivre en ville ou à la campagne ?","output":"Tu préfères vivre en ville ou à la campagne ?"}
+{"why":"question-kept","input":"Dans ton pays, comment est-ce qu'on fête la fin du ramadan ?","output":"Dans ton pays, comment on fête la fin du ramadan ?"}
+{"why":"question-kept","input":"Est-ce qu'on pourrait discuter un peu de nos projets pour l'été ?","output":"On parle de nos projets pour l'été ?"}
+{"why":"question-kept","input":"Selon vous, quels sont les avantages d'apprendre une deuxième langue dès l'école primaire ?","output":"Pour vous, apprendre une deuxième langue à l'école primaire, c'est bien ? Pourquoi ?"}
+{"why":"question-kept","input":"Tu connais un bon restaurant près de la fac ?","output":"Tu connais un bon restaurant près de l'université ?"}
+{"why":"question-kept","input":"Ça vous dérange si je partage mon écran ?","output":"Je peux partager mon écran ?"}
+{"why":"no-invention","input":"La bibliothèque ferme à dix-huit heures.","output":"La bibliothèque ferme à 18 heures."}
+{"why":"no-invention","input":"Le cours est annulé demain.","output":"Le cours est annulé demain."}
+{"why":"no-invention","input":"Mon frère travaille à Casablanca.","output":"Mon frère travaille à Casablanca."}
+{"why":"no-invention","input":"En raison d'une panne, le métro ne circule plus sur la ligne 4.","output":"Il y a une panne. Le métro ne roule plus sur la ligne 4."}
+{"why":"no-invention","input":"Suite à la hausse des prix, beaucoup de familles ont réduit leurs dépenses.","output":"Les prix ont augmenté. Beaucoup de familles dépensent moins."}
+{"why":"no-invention","input":"Le train a été retardé à cause de la neige.","output":"Le train a du retard à cause de la neige."}
+{"why":"no-invention","input":"La conférence prévue jeudi a été reportée à une date ultérieure.","output":"La conférence de jeudi est reportée. Elle a lieu plus tard."}
+{"why":"no-invention","input":"Compte tenu de l'affluence, les visiteurs sont priés de patienter à l'entrée.","output":"Il y a beaucoup de monde. Attendez à l'entrée, s'il vous plaît."}
+{"why":"no-invention","input":"Nous avons reçu votre dossier et nous vous répondrons dans un délai de deux semaines.","output":"Nous avons reçu votre dossier. Nous répondons dans 2 semaines."}
+{"why":"no-invention","input":"Les inscriptions pour le semestre prochain sont désormais ouvertes en ligne.","output":"Les inscriptions pour le prochain semestre sont ouvertes. Vous pouvez vous inscrire en ligne."}
+{"why":"gender","input":"faut bien mélanger la peinture sinon elle devient toute grumeleuse","output":"Mélangez bien la peinture. Sinon, la peinture fait des grumeaux."}
+{"why":"gender","input":"la voiture elle démarre plus depuis hier","output":"La voiture ne démarre plus depuis hier."}
+{"why":"gender","input":"cette chanson je l'ai entendue à la radio elle est trop belle","output":"J'ai entendu cette chanson à la radio. Elle est très belle."}
+{"why":"gender","input":"la réunion de ce matin elle était super longue","output":"La réunion de ce matin était très longue."}
+{"why":"gender","input":"La plupart des étudiantes sont arrivées en retard ce matin.","output":"Beaucoup d'étudiantes sont arrivées en retard ce matin."}
+{"why":"gender","input":"la photo que tu m'as envoyée elle est un peu floue","output":"La photo de ton message est un peu floue."}
+{"why":"coref","input":"faut arroser la plante tous les jours sinon ça meurt","output":"Arrosez la plante tous les jours. Sinon, la plante meurt."}
+{"why":"coref","input":"le gâteau faut le sortir du four à temps sinon ça brûle","output":"Sortez le gâteau du four à temps. Sinon, le gâteau brûle."}
+{"why":"coref","input":"la pâte faut la laisser reposer une heure sinon ça colle","output":"Laissez reposer la pâte une heure. Sinon, la pâte colle."}
+{"why":"coref","input":"le vélo faut graisser la chaîne sinon ça rouille","output":"Graissez la chaîne du vélo. Sinon, la chaîne rouille."}
+{"why":"coref","input":"mets ton manteau sinon tu vas attraper froid","output":"Mets ton manteau. Sinon, tu vas avoir froid."}
+{"why":"subjunctive","input":"Il faut que tu viennes avant que le cours commence.","output":"Tu dois venir avant le début du cours."}
+{"why":"subjunctive","input":"Je voudrais que vous m'envoyiez le document avant ce soir.","output":"Envoyez-moi le document avant ce soir, s'il vous plaît."}
+{"why":"subjunctive","input":"Bien qu'il soit fatigué, il continue à travailler.","output":"Il est fatigué. Mais il continue à travailler."}
+{"why":"subjunctive","input":"Il se pourrait qu'il pleuve cet après-midi.","output":"Il va peut-être pleuvoir cet après-midi."}
+{"why":"subjunctive","input":"J'aimerais bien que tu me rappelles quand tu auras un moment.","output":"Rappelle-moi quand tu as un moment, s'il te plaît."}
+{"why":"subjunctive","input":"Il est important que chacun puisse donner son avis.","output":"Chaque personne peut donner son avis. C'est important."}
+{"why":"subjunctive","input":"Il faut le lui dire avant qu'elle ne rentre chez elle.","output":"Vous devez lui dire avant son retour chez elle."}
+{"why":"fillers","input":"euh alors moi je suis étudiante en deuxième année et euh j'étudie le commerce international voilà","output":"Je suis étudiante en deuxième année. J'étudie le commerce international."}
+{"why":"fillers","input":"ben en fait on a eu un problème avec la connexion donc on a pas pu finir la présentation","output":"Nous avons eu un problème de connexion. Nous n'avons pas pu finir la présentation."}
+{"why":"fillers","input":"du coup là on va passer à la deuxième partie de l'exercice si tout le monde est prêt","output":"Tout le monde est prêt ? Alors nous passons à la deuxième partie de l'exercice."}
+{"why":"fillers","input":"bon alors euh aujourd'hui on va parler de la cuisine de nos pays respectifs","output":"Aujourd'hui, nous parlons de la cuisine de nos pays."}
+{"why":"fillers","input":"attends je t'entends mal euh tu peux te rapprocher du micro","output":"Je t'entends mal. Tu peux te rapprocher du micro ?"}
+{"why":"fillers","input":"voilà euh c'était un peu près tout ce que je voulais dire sur ma ville","output":"C'est tout pour ma ville."}
