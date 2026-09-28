@@ -24,6 +24,9 @@ docker run --rm --gpus all --ipc=host \
 
     echo "== Installing training libraries (inside the container only)"
     pip install --quiet "trl>=0.20" "peft>=0.15" "datasets>=3.0" "accelerate>=1.0"
+    # The 25.09 container ships torchao 0.13, but peft>=0.20 LoRA dispatch requires
+    # torchao>0.16 (or none). Remove the stale one so peft uses the normal LoRA path.
+    pip uninstall -y torchao >/dev/null 2>&1 || true
 
     for RECIPE in dylan wide; do
       echo "== Training recipe: $RECIPE"
