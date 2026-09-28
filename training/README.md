@@ -34,6 +34,26 @@ Each model is compressed to the app's size and run through the same 216-sentence
 the current model was measured on. A model only ships if it matches today's app quality
 on the hard cases while staying fast.
 
+## Round 2 (more and better training data)
+
+Round 1 was 2× faster but got the meaning wrong more often than the current app. Round 2
+has two local teacher models write and double-check thousands of new examples, then
+retrains the 0.6B:
+
+```
+cd live-linguist-win && git pull && cd training
+chmod +x train-v2.sh
+./train-v2.sh
+```
+
+- Runs for several hours, so start it before leaving for the day. It is safe to stop
+  and rerun; finished work is kept.
+- The first run downloads about 70 GB (container plus the two teacher models).
+- Writer: Qwen3-30B-A3B-Instruct-2507. Checker: Mistral-Small-3.2-24B, a different
+  model family, so one model's mistakes are not approved by itself. Both are Apache 2.0.
+- When it finishes it uploads the model to GitHub as a pre-release (if `gh` is logged
+  in), or prints the one command to do it.
+
 ## What is in here
 
 | file | purpose |

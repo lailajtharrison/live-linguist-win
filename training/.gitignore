@@ -1,4 +1,7 @@
 runs/
 out/
+out-v2/
 .hf-cache/
 llama.cpp/
+v2/gen/
+data/train_v2.jsonl

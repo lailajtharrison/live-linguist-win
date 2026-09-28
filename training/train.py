@@ -28,6 +28,11 @@ RECIPES = {
     "wide": dict(r=16, alpha=32, dropout=0.05,
                  targets=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
                  top_layers=None, epochs=3, lr=2e-4),
+    # "wide2": wide with the overfitting gap closed (train acc 0.90 vs eval 0.79 in round 1):
+    # 2 epochs, half the learning rate. Meant for the larger train_v2.jsonl.
+    "wide2": dict(r=16, alpha=32, dropout=0.05,
+                  targets=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+                  top_layers=None, epochs=2, lr=1e-4),
 }
 
 
@@ -36,6 +41,7 @@ def main():
     ap.add_argument("--recipe", choices=RECIPES, required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--data", default=os.path.join(os.path.dirname(__file__), "data"))
+    ap.add_argument("--train-file", default="train.jsonl", help="file name inside --data")
     args = ap.parse_args()
     rc = RECIPES[args.recipe]
 
@@ -50,7 +56,7 @@ def main():
     )
 
     # prompt/completion rows: loss is computed on the completion (the rewrite) only.
-    ds = load_dataset("json", data_files={"train": f"{args.data}/train.jsonl", "valid": f"{args.data}/valid.jsonl"})
+    ds = load_dataset("json", data_files={"train": f"{args.data}/{args.train_file}", "valid": f"{args.data}/valid.jsonl"})
 
     cfg = SFTConfig(
         output_dir=args.out,
