@@ -28,18 +28,21 @@ docker run --rm --gpus all --ipc=host \
 
     echo "== Building llama.cpp with CUDA (first run only)"
     if [ ! -d llama.cpp ]; then git clone --depth 1 https://github.com/ggml-org/llama.cpp; fi
-    if [ ! -x llama.cpp/build-cuda/bin/llama-server ]; then
-      # Start from a clean build dir: a stale/partial build-cuda makes CMake fail to
-      # "(re)create the private pkgRedirects directory" on re-configure.
-      rm -rf llama.cpp/build-cuda
+    # Build OFF the bind mount: on the mounted (overlay) filesystem CMake intermittently
+    # fails to create its private CMakeFiles/pkgRedirects directory. $BUILD is on the
+    # container's own fs, which is reliable. It is rebuilt each run (~15 min); the
+    # resumable work (generated data in v2/gen/) lives on the mount and is kept.
+    BUILD=/opt/llama-build
+    if [ ! -x "$BUILD/bin/llama-server" ]; then
+      rm -rf "$BUILD"
       # "native" detects the GB10; if this nvcc cannot, fall back to its compute capability (12.1).
-      cmake -S llama.cpp -B llama.cpp/build-cuda -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=native \
+      cmake -S llama.cpp -B "$BUILD" -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=native \
             -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release \
-      || { rm -rf llama.cpp/build-cuda; cmake -S llama.cpp -B llama.cpp/build-cuda -DGGML_CUDA=ON \
+      || { rm -rf "$BUILD"; cmake -S llama.cpp -B "$BUILD" -DGGML_CUDA=ON \
             -DCMAKE_CUDA_ARCHITECTURES=121 -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release; }
-      cmake --build llama.cpp/build-cuda --target llama-server -j "$(nproc)"
+      cmake --build "$BUILD" --target llama-server -j "$(nproc)"
     fi
-    SERVER=llama.cpp/build-cuda/bin/llama-server
+    SERVER="$BUILD/bin/llama-server"
 
     echo "== Downloading teacher models (first run only)"
     WRITER=$(python -c "from huggingface_hub import hf_hub_download as d; print(d(\"unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF\", \"Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf\"))")
