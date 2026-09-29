@@ -16,6 +16,7 @@ mkdir -p "$HERE/out-v2" "$HERE/.hf-cache"
 echo "== Using container $IMAGE"
 docker run --rm --gpus all --ipc=host \
   -e TARGET="$TARGET" \
+  -e BUILD_DIR="${BUILD_DIR:-llama.cpp/build-cuda}" \
   -v "$HERE/..":/repo -w /repo/training \
   -v "$HERE/.hf-cache":/root/.cache/huggingface \
   "$IMAGE" bash -euo pipefail -c '
@@ -28,17 +29,22 @@ docker run --rm --gpus all --ipc=host \
 
     echo "== Building llama.cpp with CUDA (first run only)"
     if [ ! -d llama.cpp ]; then git clone --depth 1 https://github.com/ggml-org/llama.cpp; fi
-    if [ ! -x llama.cpp/build-cuda/bin/llama-server ]; then
+    # Build dir defaults to llama.cpp/build-cuda (on the mounted repo, so the compiled
+    # binary is cached across resumable reruns). Set BUILD_DIR to a path off the mount
+    # (e.g. /opt/llama-build) if CMake cannot create its pkgRedirects dir on the mounted
+    # filesystem — as happens under a restricted/background sandbox.
+    BUILD="${BUILD_DIR:-llama.cpp/build-cuda}"
+    if [ ! -x "$BUILD/bin/llama-server" ]; then
       # Start from a clean build dir so CMake never trips over a stale re-configure.
-      rm -rf llama.cpp/build-cuda
+      rm -rf "$BUILD"
       # "native" detects the GB10; if this nvcc cannot, fall back to its compute capability (12.1).
-      cmake -S llama.cpp -B llama.cpp/build-cuda -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=native \
+      cmake -S llama.cpp -B "$BUILD" -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=native \
             -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release \
-      || { rm -rf llama.cpp/build-cuda; cmake -S llama.cpp -B llama.cpp/build-cuda -DGGML_CUDA=ON \
+      || { rm -rf "$BUILD"; cmake -S llama.cpp -B "$BUILD" -DGGML_CUDA=ON \
             -DCMAKE_CUDA_ARCHITECTURES=121 -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release; }
-      cmake --build llama.cpp/build-cuda --target llama-server -j "$(nproc)"
+      cmake --build "$BUILD" --target llama-server -j "$(nproc)"
     fi
-    SERVER=llama.cpp/build-cuda/bin/llama-server
+    SERVER="$BUILD/bin/llama-server"
 
     echo "== Downloading teacher models (first run only)"
     WRITER=$(python -c "from huggingface_hub import hf_hub_download as d; print(d(\"unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF\", \"Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf\"))")
