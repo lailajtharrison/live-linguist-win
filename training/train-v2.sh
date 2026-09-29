@@ -29,6 +29,9 @@ docker run --rm --gpus all --ipc=host \
     echo "== Building llama.cpp with CUDA (first run only)"
     if [ ! -d llama.cpp ]; then git clone --depth 1 https://github.com/ggml-org/llama.cpp; fi
     if [ ! -x llama.cpp/build-cuda/bin/llama-server ]; then
+      # Start from a clean build dir: a stale/partial build-cuda makes CMake fail to
+      # "(re)create the private pkgRedirects directory" on re-configure.
+      rm -rf llama.cpp/build-cuda
       # "native" detects the GB10; if this nvcc cannot, fall back to its compute capability (12.1).
       cmake -S llama.cpp -B llama.cpp/build-cuda -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=native \
             -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release \
