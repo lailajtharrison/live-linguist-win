@@ -22,8 +22,8 @@ docker run --rm --gpus all --ipc=host \
   "$IMAGE" bash -euo pipefail -c '
     python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
     pip install --quiet "trl>=0.20" "peft>=0.15" "datasets>=3.0" "accelerate>=1.0" "huggingface_hub>=0.25"
-    # Same fix as train.sh: the 25.09 container ships torchao 0.13, which peft>=0.20's LoRA
-    # dispatch rejects. Remove it so peft takes the normal LoRA path.
+    # Same fix as train.sh: the 25.09 container ships torchao 0.13, which the peft LoRA
+    # dispatch (peft 0.20+) rejects. Remove it so peft takes the normal LoRA path.
     pip uninstall -y torchao >/dev/null 2>&1 || true
     command -v cmake >/dev/null || pip install --quiet cmake
 
