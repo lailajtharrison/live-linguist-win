@@ -35,7 +35,8 @@ public sealed partial class MainWindow : Window
 
     private ISpeechSource? _speech;
     private LlamaSimplifier? _llm;
-    private AudioSource _source = AudioSource.Microphone;
+    private AudioSource _source = AudioSource.Microphone;   // what is running
+    private AudioSource _wanted = AudioSource.SystemPlayback; // what the student picked
     private bool _ready;   // suppress the RadioButton's initial Checked during init
 
     // One phrase is simplified at a time, in arrival order, so streamed captions never
@@ -54,13 +55,23 @@ public sealed partial class MainWindow : Window
         // A comfortable first size, in physical pixels for this screen's scaling.
         double scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
         AppWindow.Resize(new SizeInt32((int)(1120 * scale), (int)(820 * scale)));
+
+        // Open on the source the student chose last time (the welcome screen sets it).
+        AppSettings.Load();
+        _wanted = AppSettings.Source;
+        (_wanted == AudioSource.SystemPlayback ? SourceLoopback : SourceMic).IsChecked = true;
+
         RootGrid.Loaded += OnRootLoaded;
         Closed += (_, _) => { if (_captionMode) SaveCaptionRect(); };
     }
 
     private async void OnRootLoaded(object sender, RoutedEventArgs e)
     {
-        // CI/screenshot mode: render the demo frame to PNG and exit.
+        // First launch: the welcome screen. SCREENSHOT_VIEW=main skips it for CI.
+        if (!AppSettings.Onboarded && Environment.GetEnvironmentVariable("SCREENSHOT_VIEW") != "main")
+            ShowOnboarding(true);
+
+        // CI/screenshot mode: render the first frame to PNG and exit.
         var shot = Environment.GetEnvironmentVariable("SCREENSHOT_PATH");
         if (!string.IsNullOrEmpty(shot))
         {
@@ -73,7 +84,8 @@ public sealed partial class MainWindow : Window
         await GoLiveAsync();
     }
 
-    // Load the LLM once, then start the selected audio source.
+    // Load the LLM once (off the UI thread, so the welcome screen stays usable), then
+    // start the selected audio source.
     private async Task GoLiveAsync()
     {
         var fast = FindModel(FastModelName);
@@ -82,7 +94,7 @@ public sealed partial class MainWindow : Window
         {
             try
             {
-                _llm = LlamaSimplifier.Load(modelPath, useWorkedExamples: fast == null);
+                _llm = await Task.Run(() => LlamaSimplifier.Load(modelPath, useWorkedExamples: fast == null));
                 ViewModel.ModelLabel = fast != null ? "Qwen3-0.6B" : "Qwen3-1.7B";
             }
             catch { _llm = null; }
@@ -93,14 +105,17 @@ public sealed partial class MainWindow : Window
             Dispatch(() =>
             {
                 ViewModel.Mode = "Model missing";
+                SetWaiting("Not listening", "");
                 SetHint(InfoBarSeverity.Error, "The language model was not found.", "Please reinstall the app.");
             });
             _ready = true;
             return;
         }
 
-        await StartSourceAsync(_source);
+        await StartSourceAsync(_wanted);
         _ready = true;
+        // The student may have picked a source on the welcome screen while this was starting.
+        if (_wanted != _source) await StartSourceAsync(_wanted);
 
         _silenceTimer = DispatcherQueue.CreateTimer();
         _silenceTimer.Interval = TimeSpan.FromSeconds(2);
@@ -135,52 +150,91 @@ public sealed partial class MainWindow : Window
         _speech = source == AudioSource.SystemPlayback
             ? new LoopbackTranscriber(WhisperModelPath())
             : new SpeechSource();
-        _speech.Hypothesis += text => Dispatch(() => ViewModel.Verbatim = text);
+        _speech.Hypothesis += text => Dispatch(() => ShowHeard(text));
         _speech.Phrase += text => _ = OnPhraseAsync(text);
 
         var ok = await _speech.StartAsync();
         Dispatch(() =>
         {
+            ViewModel.Hint = "";
             if (ok && source == AudioSource.SystemPlayback)
             {
-                ViewModel.Mode = "Live · Meeting / video";
-                SetHint(InfoBarSeverity.Informational, "Tip:",
-                        "“Caption box” keeps the captions on top of Teams, Zoom or a video.");
-                ViewModel.Verbatim = "Waiting for sound from the meeting or video…";
+                ViewModel.Mode = "Live · Call or video";
+                SetWaiting("Listening to this computer's sound",
+                           "Start your call or video. Captions appear here as soon as someone speaks French.");
             }
             else if (ok)
             {
                 ViewModel.Mode = "Live · Microphone";
-                ViewModel.Hint = "";   // nothing to act on; the cards already say "speak"
-                ViewModel.Verbatim = "Listening… speak French.";
+                SetWaiting("Listening to the microphone",
+                           "Captions appear here as soon as someone speaks French.");
             }
             else if (source == AudioSource.SystemPlayback)
             {
                 ViewModel.Mode = "Audio unavailable";
+                SetWaiting("Not listening", "");
                 SetHint(InfoBarSeverity.Warning, "Can't listen to the computer's sound.",
-                        "The speech model “ggml-small-q5_1.bin” is missing, or no sound is playing.");
+                        "The speech model “ggml-small-q5_1.bin” is missing. Please reinstall the app.");
             }
             else
             {
-                ViewModel.Mode = "Microphone off"; // keeps the default mic-off instructions
+                ViewModel.Mode = "Microphone off";
+                SetWaiting("Not listening", "");
+                SetHint(InfoBarSeverity.Informational, "The microphone needs the French speech pack.",
+                        "Windows Settings → Time & language → Speech → add “French (France)”, then reopen " +
+                        "the app. For a call or video, choose “Call or video” instead: it needs no setup.");
             }
         });
     }
 
-    // User flipped the mic / speakers toggle.
+    // User flipped the call-or-video / microphone choice.
     private void OnSourceChanged(object sender, RoutedEventArgs e)
     {
-        if (!_ready || _llm == null) return;
-        var wanted = (sender == SourceLoopback) ? AudioSource.SystemPlayback : AudioSource.Microphone;
-        if (wanted == _source) return;
-        _ = StartSourceAsync(wanted);
+        _wanted = (sender == SourceLoopback) ? AudioSource.SystemPlayback : AudioSource.Microphone;
+        if (!_ready || _llm == null) return;   // GoLiveAsync starts _wanted once it is ready
+        AppSettings.Save(AppSettings.Onboarded, _wanted);
+        if (_wanted == _source) return;
+        _ = StartSourceAsync(_wanted);
+    }
+
+    // ---- Welcome screen ----------------------------------------------------------
+
+    private void OnHelpClick(object sender, RoutedEventArgs e) => ShowOnboarding(true);
+
+    // A choice on the welcome screen: remember it, select it, and go to the captions.
+    private void OnOnboardingChoice(object sender, RoutedEventArgs e)
+    {
+        var source = sender == ChooseMic ? AudioSource.Microphone : AudioSource.SystemPlayback;
+        AppSettings.Save(true, source);
+        // Checking the radio button runs OnSourceChanged, which switches the audio over.
+        (source == AudioSource.SystemPlayback ? SourceLoopback : SourceMic).IsChecked = true;
+        ShowOnboarding(false);
+    }
+
+    private void ShowOnboarding(bool show)
+    {
+        OnboardingView.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        MainView.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void SetWaiting(string title, string detail)
+    {
+        ViewModel.WaitingTitle = title;
+        ViewModel.WaitingDetail = detail;
+    }
+
+    // Speech was heard: from now on the caption cards replace the "listening" message.
+    private void ShowHeard(string text)
+    {
+        ViewModel.Verbatim = text;
+        ViewModel.HasSpeech = true;
     }
 
     // A finalized phrase: show it verbatim, then simplify it, streaming the caption in as
     // it is generated so the reader is not left waiting for the whole rewrite.
     private async Task OnPhraseAsync(string text)
     {
-        Dispatch(() => ViewModel.Verbatim = text);
+        Dispatch(() => ShowHeard(text));
         if (_llm == null) return;
         await _simplifyGate.WaitAsync();
         try
@@ -305,7 +359,7 @@ public sealed partial class MainWindow : Window
     private async Task CaptureAsync(string path)
     {
         var rtb = new RenderTargetBitmap();
-        await rtb.RenderAsync(RootGrid);
+        await rtb.RenderAsync(Shell);
         var pixels = await rtb.GetPixelsAsync();
 
         using var stream = new InMemoryRandomAccessStream();

@@ -6,18 +6,19 @@ namespace LiveLinguistWinUI.ViewModels;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    // First-run state: guidance, not a confusing pre-filled sample.
     // Interface text is in English so any student can operate the app; the captions
     // themselves stay French, since easy French is what they are there to read.
-    private string _verbatim = "The French you hear will appear here.";
-    private string _simplified = "The easy-French version will appear here.";
-    private string _mode = "Microphone off";
-    // The notice above the input box, shown only when there is something to act on.
-    // Default = the "mic off" instructions (also what CI screenshots).
-    private string _hint =
-        "To caption French speech: Windows Settings → Time & language → Speech → add “French (France)”, " +
-        "then reopen the app. Or choose “Meeting / video” to caption a call or video.";
-    private string _hintTitle = "The microphone is not on.";
+    // Nothing is shown in the caption cards until French is actually heard: the window
+    // stays empty apart from a short "listening" message (Waiting*).
+    private string _verbatim = "";
+    private string _simplified = "";
+    private bool _hasSpeech;
+    private string _waitingTitle = "Getting ready…";
+    private string _waitingDetail = "Loading the language model. This takes a few seconds.";
+    private string _mode = "Starting…";
+    // The notice under the captions, shown only when there is something to act on.
+    private string _hint = "";
+    private string _hintTitle = "";
     private InfoBarSeverity _hintSeverity = InfoBarSeverity.Informational;
 
     // Measured round-trip for the last phrase. Em dash until there is a real
@@ -35,6 +36,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string Verbatim { get => _verbatim; set => Set(ref _verbatim, value); }
     public string Simplified { get => _simplified; set => Set(ref _simplified, value); }
+    // False until the first French is heard; the caption cards appear then.
+    public bool HasSpeech
+    {
+        get => _hasSpeech;
+        set { Set(ref _hasSpeech, value); Notify(nameof(IsWaiting)); }
+    }
+    public bool IsWaiting => !_hasSpeech;
+    public string WaitingTitle { get => _waitingTitle; set => Set(ref _waitingTitle, value); }
+    public string WaitingDetail { get => _waitingDetail; set => Set(ref _waitingDetail, value); }
     public string Mode
     {
         get => _mode;

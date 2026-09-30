@@ -54,10 +54,15 @@ jobs:
           $len = (Get-Item screenshot.png).Length
           Write-Host "screenshot.png is $len bytes"
           if ($len -lt 2000) { throw "screenshot.png suspiciously small ($len bytes)" }
-          # TEMP (ui-polish): artifact storage quota is full, so print the PNG to the log
-          Write-Host "PNGB64-BEGIN"
-          Write-Host ([Convert]::ToBase64String([IO.File]::ReadAllBytes("screenshot.png")))
-          Write-Host "PNGB64-END"
+          # TEMP (ui-polish): artifact storage quota is full, so print the PNGs to the log.
+          # A second run with SCREENSHOT_VIEW=main captures the screen after the welcome.
+          $exe = Get-ChildItem -Recurse -Filter LiveLinguistWinUI.exe winui\bin | Select-Object -First 1
+          $env:SCREENSHOT_VIEW = "main"; $env:SCREENSHOT_PATH = "$pwd\screenshot-main.png"
+          $p = Start-Process -FilePath $exe.FullName -PassThru; $p.WaitForExit(90000) | Out-Null
+          foreach ($f in "screenshot.png", "screenshot-main.png") {
+            Write-Host "PNGB64-BEGIN $f"
+            Write-Host ([Convert]::ToBase64String([IO.File]::ReadAllBytes($f)))
+          }
 
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4

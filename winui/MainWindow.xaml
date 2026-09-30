@@ -16,16 +16,18 @@
         <StackPanel Grid.Column="0" VerticalAlignment="Bottom" Spacing="4">
             <TextBlock Text="{x:Bind ViewModel.AudioWarning, Mode=OneWay}"
                        Visibility="{x:Bind ViewModel.HasAudioWarning, Mode=OneWay}"
-                       FontSize="14" Foreground="#FFFBBF24" TextWrapping="Wrap" FontFamily="Segoe UI" />
+                       FontSize="14" Foreground="#FFFBBF24" TextWrapping="Wrap" />
+            <TextBlock Text="{x:Bind ViewModel.WaitingTitle, Mode=OneWay}"
+                       Visibility="{x:Bind ViewModel.IsWaiting, Mode=OneWay}"
+                       FontSize="18" Foreground="#FF8B93A0" TextWrapping="Wrap" />
             <TextBlock Text="{x:Bind ViewModel.PreviousSimplified, Mode=OneWay}" FontSize="18" LineHeight="24"
-                       Foreground="#FF8B93A0" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
-                       FontFamily="Segoe UI" />
+                       Foreground="#FF8B93A0" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="26" FontWeight="Bold"
-                       LineHeight="34" Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI" />
+                       LineHeight="34" Foreground="#FFF3F7FA" TextWrapping="Wrap" />
             <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}"
                        Visibility="{x:Bind ViewModel.ShowOriginal, Mode=OneWay}"
                        FontSize="14" FontStyle="Italic" Foreground="#FF9AA6B4" TextWrapping="Wrap"
-                       MaxLines="2" TextTrimming="CharacterEllipsis" FontFamily="Segoe UI" />
+                       MaxLines="2" TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <StackPanel Grid.Column="1" VerticalAlignment="Top" Spacing="6" Margin="12,0,0,0">
             <Button x:Name="ExpandButton" Content="Expand" Click="OnExpandClick" FontSize="12"
@@ -35,8 +37,7 @@
         </StackPanel>
     </Grid>
 
-    <!-- Main window: fills whatever size the student gives it. Header and status bar span
-         the full width; the captions and input sit in one centred column. -->
+    <!-- Main window: fills whatever size the student gives it. -->
     <Grid x:Name="RootGrid" Background="#FF0B0D10" RequestedTheme="Dark">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -44,7 +45,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header: name + language on the left; live status + caption box on the right -->
+        <!-- Header: name + language on the left; live status, help and caption box on the right -->
         <Border Grid.Row="0" Background="#FF0E1115" BorderBrush="#FF1C2129" BorderThickness="0,0,0,1"
                 Padding="28,14">
             <Grid ColumnSpacing="16">
@@ -61,9 +62,9 @@
                                    Foreground="#FFB8C0CC" />
                     </Border>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="16">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                     <!-- Live status: green dot while listening, grey otherwise -->
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,4,0">
                         <Ellipse Width="9" Height="9" Fill="#FF34D399" VerticalAlignment="Center"
                                  Visibility="{x:Bind ViewModel.IsLive, Mode=OneWay}" />
                         <Ellipse Width="9" Height="9" Fill="#FF6B7480" VerticalAlignment="Center"
@@ -71,6 +72,10 @@
                         <TextBlock Text="{x:Bind ViewModel.Mode, Mode=OneWay}" FontSize="13"
                                    Foreground="#FFB8C0CC" VerticalAlignment="Center" />
                     </StackPanel>
+                    <Button Click="OnHelpClick" ToolTipService.ToolTip="How to use Live Linguist"
+                            AutomationProperties.Name="How to use Live Linguist">
+                        <FontIcon Glyph="&#xE897;" FontSize="14" />
+                    </Button>
                     <Button x:Name="CaptionButton" Click="OnCaptionModeClick" Style="{StaticResource AccentButtonStyle}"
                             ToolTipService.ToolTip="A small window that stays on top of Zoom, Teams or YouTube">
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -82,67 +87,188 @@
             </Grid>
         </Border>
 
-        <!-- Body: one centred column that scrolls if the window is short -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <Grid MaxWidth="1000" Margin="32,24,32,24" RowSpacing="16">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <!-- Audio source: the mic (in person) vs the computer's sound (a Teams/Zoom
-                     partner or a video, what a call actually needs). -->
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20">
-                    <TextBlock Text="Listen to" FontSize="14" Foreground="#FF9AA6B4" VerticalAlignment="Center" />
-                    <RadioButton x:Name="SourceMic" GroupName="src" IsChecked="True" Checked="OnSourceChanged" MinWidth="0">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE720;" FontSize="14" />
-                            <TextBlock Text="Microphone" />
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton x:Name="SourceLoopback" GroupName="src" Checked="OnSourceChanged" MinWidth="0">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE767;" FontSize="14" />
-                            <TextBlock Text="Meeting / video" />
-                        </StackPanel>
-                    </RadioButton>
+        <!-- Welcome screen: first launch, or the ? button. Explains the three steps and
+             asks where the French will come from. -->
+        <ScrollViewer x:Name="OnboardingView" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="780" Margin="32,36,32,32" Spacing="28">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Welcome to Live Linguist" FontSize="30" FontWeight="SemiBold"
+                               Foreground="#FFF3F7FA" />
+                    <TextBlock FontSize="16" LineHeight="24" Foreground="#FFB8C0CC" TextWrapping="Wrap"
+                               Text="Live Linguist listens to French as it is spoken and shows it in easy-to-read French (FALC), so you can follow along. Everything stays on this computer." />
                 </StackPanel>
 
-                <Border Grid.Row="1" Background="#FF14181E" CornerRadius="12" Padding="32,22"
-                        BorderBrush="#FF20262E" BorderThickness="1">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="WHAT WAS SAID" FontSize="12" FontWeight="SemiBold"
-                                   Foreground="#FF9AA6B4" CharacterSpacing="120" />
-                        <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}" FontSize="20" LineHeight="30"
-                                   Foreground="#FFDFE4EA" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-                    </StackPanel>
-                </Border>
-
-                <!-- The caption is the point of the app: the biggest, brightest thing on screen -->
-                <Border Grid.Row="2" Background="#FF0D1F18" CornerRadius="12" Padding="32,26" MinHeight="170"
-                        BorderBrush="#FF244A40" BorderThickness="1">
-                    <StackPanel Spacing="10">
-                        <TextBlock Text="EASY FRENCH · FALC" FontSize="12" FontWeight="SemiBold"
-                                   Foreground="#FF5EEAD4" CharacterSpacing="120" />
-                        <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="34" FontWeight="Bold"
-                                   LineHeight="46" Foreground="#FFF3F7FA" TextWrapping="Wrap"
-                                   IsTextSelectionEnabled="True" />
-                    </StackPanel>
-                </Border>
-
-                <!-- Notices: shown only when there is something to act on -->
-                <StackPanel Grid.Row="3" Spacing="8">
-                    <InfoBar IsOpen="{x:Bind ViewModel.HasAudioWarning, Mode=OneWay}" IsClosable="False"
-                             Severity="Warning" Message="{x:Bind ViewModel.AudioWarning, Mode=OneWay}" />
-                    <InfoBar IsOpen="{x:Bind ViewModel.HasHint, Mode=OneWay}" IsClosable="False"
-                             Severity="{x:Bind ViewModel.HintSeverity, Mode=OneWay}"
-                             Title="{x:Bind ViewModel.HintTitle, Mode=OneWay}"
-                             Message="{x:Bind ViewModel.Hint, Mode=OneWay}" />
+                <StackPanel Spacing="14">
+                    <TextBlock Text="HOW IT WORKS" FontSize="12" FontWeight="SemiBold" Foreground="#FF5EEAD4"
+                               CharacterSpacing="120" />
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="30" Height="30" CornerRadius="15" Background="#FF123A33" VerticalAlignment="Top">
+                            <TextBlock Text="1" FontWeight="SemiBold" Foreground="#FF5EEAD4"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="Choose where the French comes from" FontSize="16" FontWeight="SemiBold"
+                                       Foreground="#FFEAF0F6" />
+                            <TextBlock Text="A call or video on this computer, or someone speaking in the room. Pick one below."
+                                       FontSize="14" Foreground="#FF9AA6B4" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="30" Height="30" CornerRadius="15" Background="#FF123A33" VerticalAlignment="Top">
+                            <TextBlock Text="2" FontWeight="SemiBold" Foreground="#FF5EEAD4"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="Start your call, class or video" FontSize="16" FontWeight="SemiBold"
+                                       Foreground="#FFEAF0F6" />
+                            <TextBlock Text="Leave Live Linguist open. It starts captioning as soon as it hears French."
+                                       FontSize="14" Foreground="#FF9AA6B4" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="30" Height="30" CornerRadius="15" Background="#FF123A33" VerticalAlignment="Top">
+                            <TextBlock Text="3" FontWeight="SemiBold" Foreground="#FF5EEAD4"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="Read the easy French" FontSize="16" FontWeight="SemiBold"
+                                       Foreground="#FFEAF0F6" />
+                            <TextBlock Text="Click “Caption box” (top right) to keep the captions in a small window on top of your call."
+                                       FontSize="14" Foreground="#FF9AA6B4" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
-            </Grid>
+
+                <StackPanel Spacing="14">
+                    <TextBlock Text="WHERE WILL THE FRENCH COME FROM?" FontSize="12" FontWeight="SemiBold"
+                               Foreground="#FF5EEAD4" CharacterSpacing="120" />
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="ChooseLoopback" Grid.Column="0" Click="OnOnboardingChoice"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Left" VerticalContentAlignment="Top" Padding="22,20">
+                            <StackPanel Spacing="8">
+                                <Grid>
+                                    <FontIcon Glyph="&#xE7F4;" FontSize="28" HorizontalAlignment="Left" Foreground="#FF5EEAD4" />
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="10"
+                                            Background="#FF123A33" Padding="8,2">
+                                        <TextBlock Text="Most common" FontSize="11" Foreground="#FF5EEAD4" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Text="A call or video on this computer" FontSize="16" FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="Teams, Zoom, YouTube, or any French playing on this PC."
+                                           FontSize="13" Foreground="#FF9AA6B4" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ChooseMic" Grid.Column="1" Click="OnOnboardingChoice"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Left" VerticalContentAlignment="Top" Padding="22,20">
+                            <StackPanel Spacing="8">
+                                <FontIcon Glyph="&#xE720;" FontSize="28" HorizontalAlignment="Left" Foreground="#FF5EEAD4" />
+                                <TextBlock Text="Someone speaking in the room" FontSize="16" FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="Uses the microphone. Needs the French speech pack in Windows Settings."
+                                           FontSize="13" Foreground="#FF9AA6B4" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="You can switch at any time. To see this guide again, click the ? button at the top."
+                               FontSize="13" Foreground="#FF8B93A0" TextWrapping="Wrap" />
+                </StackPanel>
+            </StackPanel>
         </ScrollViewer>
+
+        <!-- Captioning view -->
+        <Grid x:Name="MainView" Grid.Row="1" MaxWidth="1000" Margin="32,20,32,20" RowSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Audio source: the computer's sound (a Teams/Zoom partner or a video) vs the mic (in person) -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20">
+                <TextBlock Text="Listen to" FontSize="14" Foreground="#FF9AA6B4" VerticalAlignment="Center" />
+                <RadioButton x:Name="SourceLoopback" GroupName="src" Checked="OnSourceChanged" MinWidth="0">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE7F4;" FontSize="14" />
+                        <TextBlock Text="Call or video" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="SourceMic" GroupName="src" Checked="OnSourceChanged" MinWidth="0">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE720;" FontSize="14" />
+                        <TextBlock Text="Microphone" />
+                    </StackPanel>
+                </RadioButton>
+            </StackPanel>
+
+            <!-- Before any French is heard: a quiet "listening" message, nothing else -->
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12"
+                        MaxWidth="520" Visibility="{x:Bind ViewModel.IsWaiting, Mode=OneWay}">
+                <Border Width="64" Height="64" CornerRadius="32" Background="#FF123A33" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE7F0;" FontSize="28" Foreground="#FF5EEAD4" />
+                </Border>
+                <TextBlock Text="{x:Bind ViewModel.WaitingTitle, Mode=OneWay}" FontSize="20" FontWeight="SemiBold"
+                           Foreground="#FFEAF0F6" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                <TextBlock Text="{x:Bind ViewModel.WaitingDetail, Mode=OneWay}" FontSize="14" LineHeight="21"
+                           Foreground="#FF9AA6B4" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Once French is heard: the caption (largest) and what was actually said -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          Visibility="{x:Bind ViewModel.HasSpeech, Mode=OneWay}">
+                <StackPanel Spacing="16">
+                    <Border Background="#FF0D1F18" CornerRadius="12" Padding="32,26"
+                            BorderBrush="#FF244A40" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="EASY FRENCH · FALC" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#FF5EEAD4" CharacterSpacing="120" />
+                            <TextBlock Text="{x:Bind ViewModel.PreviousSimplified, Mode=OneWay}" FontSize="20"
+                                       LineHeight="28" Foreground="#FF7F9A92" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="34" FontWeight="Bold"
+                                       LineHeight="46" Foreground="#FFF3F7FA" TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#FF14181E" CornerRadius="12" Padding="32,20"
+                            BorderBrush="#FF20262E" BorderThickness="1">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="WHAT WAS SAID" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#FF9AA6B4" CharacterSpacing="120" />
+                            <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}" FontSize="18" LineHeight="28"
+                                       Foreground="#FFC9D1DA" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Notices: shown only when there is something to act on -->
+            <StackPanel Grid.Row="2" Spacing="8">
+                <InfoBar IsOpen="{x:Bind ViewModel.HasAudioWarning, Mode=OneWay}" IsClosable="False"
+                         Severity="Warning" Message="{x:Bind ViewModel.AudioWarning, Mode=OneWay}" />
+                <InfoBar IsOpen="{x:Bind ViewModel.HasHint, Mode=OneWay}" IsClosable="False"
+                         Severity="{x:Bind ViewModel.HintSeverity, Mode=OneWay}"
+                         Title="{x:Bind ViewModel.HintTitle, Mode=OneWay}"
+                         Message="{x:Bind ViewModel.Hint, Mode=OneWay}" />
+            </StackPanel>
+        </Grid>
 
         <!-- Status bar -->
         <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#FF1C2129" BorderThickness="0,1,0,0"
