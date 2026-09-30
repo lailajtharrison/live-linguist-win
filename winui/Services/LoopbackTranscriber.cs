@@ -32,6 +32,8 @@ public sealed class LoopbackTranscriber : ISpeechSource
 
     private readonly string _modelPath;
     private readonly UtteranceChunker _chunker = new() { MaxMs = MaxUtteranceMs };
+    private readonly SentenceJoiner _joiner = new();
+    private static readonly TimeSpan AudioStoppedAfter = TimeSpan.FromMilliseconds(700);
     private double _lastWhisperMs;
 
     /// When the most recent utterance ended (was cut for Whisper). Read it when a Phrase
@@ -153,12 +155,26 @@ public sealed class LoopbackTranscriber : ISpeechSource
         var frame = new float[FrameSamples];
         int filled = 0;
         int sincePartialSamples = 0;
+        var lastAudioUtc = DateTime.UtcNow;
 
         while (!ct.IsCancellationRequested)
         {
             var pipeline = _pipeline;
             int got = pipeline == null ? 0 : pipeline.Read(frame, filled, FrameSamples - filled);
-            if (got == 0) { await Task.Delay(20, ct).ConfigureAwait(false); continue; }
+            if (got == 0)
+            {
+                // No audio at all (nothing playing): end what was being said, as at a pause.
+                if (DateTime.UtcNow - lastAudioUtc > AudioStoppedAfter)
+                {
+                    if (_chunker.HasSpeech)
+                        await EndUtteranceAsync(_chunker.EndNow(), ct).ConfigureAwait(false);
+                    else if (_joiner.Pending.Length > 0)
+                        Release(_joiner.Flush());
+                }
+                await Task.Delay(20, ct).ConfigureAwait(false);
+                continue;
+            }
+            lastAudioUtc = DateTime.UtcNow;
             filled += got;
             if (filled < FrameSamples) continue;
             filled = 0;
@@ -168,10 +184,8 @@ public sealed class LoopbackTranscriber : ISpeechSource
 
             if (utterance != null)
             {
-                LastUtteranceEndUtc = DateTime.UtcNow;
                 sincePartialSamples = 0;
-                var phrase = await TranscribeAsync(utterance, ct).ConfigureAwait(false);
-                if (phrase != null) Phrase?.Invoke(phrase);
+                await EndUtteranceAsync(utterance, ct).ConfigureAwait(false);
                 continue;
             }
 
@@ -183,9 +197,28 @@ public sealed class LoopbackTranscriber : ISpeechSource
             {
                 sincePartialSamples = 0;
                 var partial = await TranscribeAsync(_chunker.Snapshot(), ct).ConfigureAwait(false);
-                if (partial != null) Hypothesis?.Invoke(partial);
+                // The live line shows held text too, so no words vanish while they wait.
+                var live = SentenceJoiner.Join(_joiner.Pending, SentenceJoiner.Clean(partial ?? ""));
+                if (live.Length > 0) Hypothesis?.Invoke(live);
             }
         }
+    }
+
+    // Transcribe a finished utterance, then release the complete sentences for simplifying
+    // and hold back an unfinished one if the utterance was cut mid-speech.
+    private async Task EndUtteranceAsync(float[]? utterance, CancellationToken ct)
+    {
+        if (utterance == null) { Release(_joiner.Flush()); return; }
+        LastUtteranceEndUtc = DateTime.UtcNow;
+        var text = await TranscribeAsync(utterance, ct).ConfigureAwait(false) ?? "";
+        Release(_joiner.Add(text, _chunker.LastEndedAtPause));
+        if (_joiner.Pending.Length > 0) Hypothesis?.Invoke(_joiner.Pending);
+    }
+
+    private void Release(List<string> ready)
+    {
+        foreach (var phrase in ready)
+            if (!IsNoise(phrase)) Phrase?.Invoke(phrase);
     }
 
     // Null when Whisper heard nothing usable.

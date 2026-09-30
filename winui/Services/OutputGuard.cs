@@ -62,6 +62,23 @@ public static class OutputGuard
         return false;
     }
 
+    // A character repeated 8+ times, or a "word" longer than any French word: the model
+    // running away inside a sentence, which IsLooping (whole sentences) cannot see. Seen on
+    // a run-on input: "Une réparation de 1000000000000000000000…".
+    private static readonly Regex Runaway = new(@"(\S)\1{7,}|\S{40,}", RegexOptions.Compiled);
+
+    public static bool IsRunaway(string text) => Runaway.IsMatch(text);
+
+    /// Cut a caption back to its last complete sentence before a runaway.
+    public static string CutRunaway(string text)
+    {
+        var m = Runaway.Match(text);
+        if (!m.Success) return text;
+        var head = text[..m.Index];
+        int end = head.LastIndexOfAny(new[] { '.', '!', '?' });
+        return (end >= 0 ? head[..(end + 1)] : head).Trim();
+    }
+
     /// Final cleanup of a finished caption: drop repeated sentences, keep the first of each.
     public static string RemoveRepeats(string text)
     {

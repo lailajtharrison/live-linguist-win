@@ -30,6 +30,10 @@ public sealed class UtteranceChunker
 
     /// True while an utterance is being collected.
     public bool HasSpeech => _hasSpeech;
+
+    /// Whether the last utterance returned ended at a pause (true) or was cut at MaxMs
+    /// (false): a cut can fall mid-sentence, a pause usually ends a thought.
+    public bool LastEndedAtPause { get; private set; }
     public int LengthMs => _samples.Count * 1000 / SampleRate;
 
     /// The utterance collected so far (for live partial transcripts).
@@ -54,13 +58,19 @@ public sealed class UtteranceChunker
         }
         if (!_hasSpeech) return null;
 
-        if (_trailingSilenceMs >= SilenceFlushMs)
-        {
-            var done = _samples.Count * 1000 / SampleRate >= MinMs ? _samples.ToArray() : null;
-            Reset();
-            return done;
-        }
+        if (_trailingSilenceMs >= SilenceFlushMs) return EndNow();
         return LengthMs >= MaxMs ? SplitAtQuietest() : null;
+    }
+
+    /// End the utterance here, as at a pause. The capture calls this when the audio stops
+    /// altogether (Windows sends no loopback data while nothing plays, e.g. a video paused
+    /// mid-sentence), since then no silent frames arrive to end it.
+    public float[]? EndNow()
+    {
+        var done = _hasSpeech && LengthMs >= MinMs ? _samples.ToArray() : null;
+        Reset();
+        LastEndedAtPause = true;
+        return done;
     }
 
     private float[] SplitAtQuietest()
@@ -79,6 +89,7 @@ public sealed class UtteranceChunker
         _frameRms.RemoveRange(0, Math.Min(cutFrames, _frameRms.Count));
         _trailingSilenceMs = 0;
         _hasSpeech = _samples.Count > 0;
+        LastEndedAtPause = false;
         return head;
     }
 

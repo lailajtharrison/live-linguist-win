@@ -85,13 +85,13 @@ public sealed class LlamaSimplifier : IDisposable
             var partial = Clean(sb.ToString());
             if (OutputGuard.LooksEnglish(partial)) return null;
             // Leaving the loop disposes the enumerator, which stops generation.
-            if (OutputGuard.IsLooping(partial)) break;
+            if (OutputGuard.IsLooping(partial) || OutputGuard.IsRunaway(partial)) break;
             if (onPartial != null &&
                 partial.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= MinWordsBeforeStreaming)
                 onPartial(partial);
         }
 
-        var text = OutputGuard.RemoveRepeats(Clean(sb.ToString()));
+        var text = OutputGuard.RemoveRepeats(OutputGuard.CutRunaway(Clean(sb.ToString())));
         return OutputGuard.LooksEnglish(text) ? null : text;
     }
 
