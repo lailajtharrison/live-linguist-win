@@ -45,6 +45,8 @@ public sealed partial class MainWindow : Window
     private string _lastCaption = "";
 
     private DispatcherQueueTimer? _silenceTimer;
+    private readonly TranscriptLog _transcript = new();
+    private bool _followLatest = true;   // the transcript scrolls with new lines
     private bool _captionMode;
     private RectInt32 _fullWindowRect;
 
@@ -149,7 +151,7 @@ public sealed partial class MainWindow : Window
         _speech = source == AudioSource.SystemPlayback
             ? new LoopbackTranscriber(WhisperModelPath())
             : new SpeechSource();
-        _speech.Hypothesis += text => Dispatch(() => ShowHeard(text));
+        _speech.Hypothesis += text => Dispatch(() => ShowHearing(text));
         _speech.Phrase += text => _ = OnPhraseAsync(text);
 
         var ok = await _speech.StartAsync();
@@ -222,15 +224,18 @@ public sealed partial class MainWindow : Window
         ViewModel.WaitingDetail = detail;
     }
 
-    // Speech was heard: from now on the caption cards replace the "listening" message.
-    private void ShowHeard(string text)
+    // Words still being heard (a partial transcript): the grey live line under the
+    // transcript. From the first words on, the transcript replaces the "listening" message.
+    private void ShowHearing(string text)
     {
         ViewModel.Verbatim = text;
+        ViewModel.LiveText = text;
         ViewModel.HasSpeech = true;
+        ScrollToLatestIfFollowing();
     }
 
-    // A finalized phrase: show it verbatim, then simplify it, streaming the caption in as
-    // it is generated so the reader is not left waiting for the whole rewrite.
+    // A finalized phrase: add it to the transcript, then simplify it, streaming the caption
+    // into its line as it is generated so the reader is not left waiting for the rewrite.
     private async Task OnPhraseAsync(string text)
     {
         // Latency is what the student waits: from the end of the speech to the caption.
@@ -238,8 +243,9 @@ public sealed partial class MainWindow : Window
         // when the utterance ended. (Read before the first await: the transcriber is
         // still on this phrase.)
         var spokenEndUtc = _speech is LoopbackTranscriber lt ? lt.LastUtteranceEndUtc : DateTime.UtcNow;
-        Dispatch(() => ShowHeard(text));
-        if (_llm == null) return;
+        var entry = new CaptionEntry(text, ViewModel.ShowOriginal);
+        Dispatch(() => AddEntry(entry));
+        if (_llm == null) { Dispatch(() => FinishEntry(entry, text)); return; }
         await _simplifyGate.WaitAsync();
         try
         {
@@ -252,24 +258,113 @@ public sealed partial class MainWindow : Window
                     ViewModel.PreviousSimplified = _lastCaption;
                 }
                 ViewModel.Simplified = caption;
+                entry.Simplified = caption;
+                ScrollToLatestIfFollowing();
             });
 
             // null = the model answered in English; showing the French that was actually
             // said is always better than a wrong-language caption.
             var simple = await _llm.SimplifyAsync(Prompts.FrenchFalc, text, Show) ?? text;
             var latency = FormatLatency(DateTime.UtcNow - spokenEndUtc);
-            if (!string.IsNullOrWhiteSpace(simple))
+            if (string.IsNullOrWhiteSpace(simple)) simple = text;
+            Show(simple);
+            Dispatch(() =>
             {
-                Show(simple);
-                Dispatch(() =>
-                {
-                    _lastCaption = simple;
-                    ViewModel.Latency = latency;
-                });
-            }
+                _lastCaption = simple;
+                ViewModel.Latency = latency;
+                FinishEntry(entry, simple);
+            });
         }
-        catch { /* skip a bad phrase rather than crash the caption loop */ }
+        catch
+        {
+            // Keep the words even when simplifying fails: the line shows what was said.
+            Dispatch(() => FinishEntry(entry, text));
+        }
         finally { _simplifyGate.Release(); }
+    }
+
+    // ---- Transcript ----------------------------------------------------------------
+
+    private void AddEntry(CaptionEntry entry)
+    {
+        ViewModel.Verbatim = entry.Original;
+        ViewModel.LiveText = "";
+        ViewModel.HasSpeech = true;
+        if (ViewModel.Entries.Count > 0) ViewModel.Entries[^1].IsLatest = false;
+        ViewModel.Entries.Add(entry);
+        SaveButton.IsEnabled = true;
+        ScrollToLatestIfFollowing();
+    }
+
+    // The caption is final: show it and append it to the autosaved transcript.
+    private void FinishEntry(CaptionEntry entry, string caption)
+    {
+        entry.Simplified = caption;
+        _transcript.Append(entry);
+        ScrollToLatestIfFollowing();
+    }
+
+    // Keep the newest line in view, unless the student has scrolled up to reread.
+    private void ScrollToLatestIfFollowing()
+    {
+        if (!_followLatest) return;
+        FeedScroll.UpdateLayout();
+        FeedScroll.ChangeView(null, FeedScroll.ScrollableHeight, null, disableAnimation: true);
+    }
+
+    private void OnFeedViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (e.IsIntermediate) return;
+        _followLatest = FeedScroll.VerticalOffset >= FeedScroll.ScrollableHeight - 48;
+        JumpToLatestButton.Visibility = _followLatest ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void OnJumpToLatestClick(object sender, RoutedEventArgs e)
+    {
+        _followLatest = true;
+        JumpToLatestButton.Visibility = Visibility.Collapsed;
+        ScrollToLatestIfFollowing();
+    }
+
+    private void OnShowOriginalToggled(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ShowOriginal = ShowOriginalSwitch.IsOn;
+        OriginalToggle.IsChecked = ShowOriginalSwitch.IsOn;
+    }
+
+    // "Save transcript": the whole session as a text file, wherever the student chooses.
+    private async void OnSaveTranscriptClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var picker = new Windows.Storage.Pickers.FileSavePicker
+            {
+                SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary,
+                SuggestedFileName = _transcript.SuggestedFileName,
+            };
+            picker.FileTypeChoices.Add("Text file", new System.Collections.Generic.List<string> { ".txt" });
+            // Unpackaged app: the picker must be told which window it belongs to.
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
+            var file = await picker.PickSaveFileAsync();
+            if (file == null) return;
+            await File.WriteAllTextAsync(file.Path, _transcript.Export(ViewModel.Entries), System.Text.Encoding.UTF8);
+            ShowBriefly(InfoBarSeverity.Success, "Transcript saved.", file.Path);
+        }
+        catch (Exception ex)
+        {
+            ShowBriefly(InfoBarSeverity.Error, "Could not save the transcript.", ex.Message);
+        }
+    }
+
+    // A notice that clears itself after a few seconds (unless something replaced it).
+    private void ShowBriefly(InfoBarSeverity severity, string title, string message)
+    {
+        SetHint(severity, title, message);
+        var timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromSeconds(6);
+        timer.IsRepeating = false;
+        timer.Tick += (_, _) => { if (ViewModel.Hint == message) ViewModel.Hint = ""; };
+        timer.Start();
     }
 
     // ---- Caption box -------------------------------------------------------------
@@ -278,8 +373,9 @@ public sealed partial class MainWindow : Window
 
     private void OnExpandClick(object sender, RoutedEventArgs e) => ExitCaptionMode();
 
+    // Same setting as the main window's "Show original" switch (which updates the view model).
     private void OnOriginalToggleClick(object sender, RoutedEventArgs e) =>
-        ViewModel.ShowOriginal = OriginalToggle.IsChecked == true;
+        ShowOriginalSwitch.IsOn = OriginalToggle.IsChecked == true;
 
     // Shrink to a strip that stays on top of the call or video, where the student left it
     // last time, or else along the bottom of the screen.

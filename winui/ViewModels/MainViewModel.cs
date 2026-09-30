@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml.Controls;
@@ -62,7 +63,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public InfoBarSeverity HintSeverity { get => _hintSeverity; set => Set(ref _hintSeverity, value); }
     public string Latency { get => _latency; set => Set(ref _latency, value); }
     public string PreviousSimplified { get => _previousSimplified; set => Set(ref _previousSimplified, value); }
-    public bool ShowOriginal { get => _showOriginal; set => Set(ref _showOriginal, value); }
+    public bool ShowOriginal
+    {
+        get => _showOriginal;
+        set
+        {
+            Set(ref _showOriginal, value);
+            foreach (var e in Entries) e.ShowOriginal = value;
+        }
+    }
+
+    // The transcript: every caption since the app started, oldest first.
+    public ObservableCollection<CaptionEntry> Entries { get; } = new();
+
+    // What is being heard right now, before it becomes a transcript line.
+    public string LiveText
+    {
+        get => _liveText;
+        set { Set(ref _liveText, value); Notify(nameof(HasLiveText)); }
+    }
+    public bool HasLiveText => _liveText.Length > 0;
+    private string _liveText = "";
     public string AudioWarning
     {
         get => _audioWarning;
