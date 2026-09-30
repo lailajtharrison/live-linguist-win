@@ -30,7 +30,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
     // who looked away for a second can catch up.
     private string _previousSimplified = "";
     private bool _showOriginal;
-    private string _modelLabel = "Qwen3";
     // Set when the meeting/video source has heard nothing for a while (empty = fine).
     private string _audioWarning = "";
 
@@ -64,18 +63,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string Latency { get => _latency; set => Set(ref _latency, value); }
     public string PreviousSimplified { get => _previousSimplified; set => Set(ref _previousSimplified, value); }
     public bool ShowOriginal { get => _showOriginal; set => Set(ref _showOriginal, value); }
-    public string ModelLabel
-    {
-        get => _modelLabel;
-        set { Set(ref _modelLabel, value); Notify(nameof(StatusText)); }
-    }
     public string AudioWarning
     {
         get => _audioWarning;
         set { Set(ref _audioWarning, value); Notify(nameof(HasAudioWarning)); }
     }
     public bool HasAudioWarning => _audioWarning.Length > 0;
-    public string StatusText => $"On this device · {_modelLabel} · nothing leaves this PC";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

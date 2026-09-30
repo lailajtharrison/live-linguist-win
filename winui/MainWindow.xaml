@@ -273,12 +273,8 @@
         <!-- Status bar -->
         <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#FF1C2129" BorderThickness="0,1,0,0"
                 Padding="28,10">
-            <Grid>
-                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="#FF8B93A0"
-                           Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
-                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"
-                           Foreground="#FF8B93A0" Text="{x:Bind ViewModel.Latency, Mode=OneWay}" />
-            </Grid>
+            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"
+                       Foreground="#FF8B93A0" Text="{x:Bind ViewModel.Latency, Mode=OneWay}" />
         </Border>
     </Grid>
     </Grid>

@@ -28,8 +28,11 @@ public sealed class LoopbackTranscriber : ISpeechSource
 
     private readonly string _modelPath;
     private WasapiLoopbackCapture? _capture;
-    private BufferedWaveProvider? _buffer;
-    private ISampleProvider? _pipeline;
+    // Swapped when the Windows default output changes; the pump reads whichever is current.
+    private volatile ISampleProvider? _pipeline;
+    private readonly object _captureLock = new();
+    private MMDeviceEnumerator? _devices;
+    private DefaultOutputWatcher? _watcher;
     private WhisperFactory? _whisperFactory;
     private WhisperProcessor? _whisper;
     private CancellationTokenSource? _cts;
@@ -56,8 +59,34 @@ public sealed class LoopbackTranscriber : ISpeechSource
                 .WithThreads(Math.Max(1, Environment.ProcessorCount - 2))
                 .Build();
 
-            _capture = new WasapiLoopbackCapture(); // default render endpoint
-            _buffer = new BufferedWaveProvider(_capture.WaveFormat)
+            StartCapture();
+
+            // Follow the Windows default output. Plugging in headphones or joining a call
+            // often changes it, and a capture left on the old device hears nothing: the
+            // student sees "No sound is reaching the app" while their video plays fine.
+            _devices = new MMDeviceEnumerator();
+            _watcher = new DefaultOutputWatcher(OnDefaultOutputChanged);
+            _devices.RegisterEndpointNotificationCallback(_watcher);
+
+            _cts = new CancellationTokenSource();
+            _pump = Task.Run(() => PumpAsync(_cts.Token));
+            return true;
+        }
+        catch
+        {
+            Cleanup();
+            return false;
+        }
+    }
+
+    // (Re)start loopback capture on the current default output.
+    private void StartCapture()
+    {
+        lock (_captureLock)
+        {
+            StopCapture();
+            var capture = new WasapiLoopbackCapture(); // default render endpoint
+            var buffer = new BufferedWaveProvider(capture.WaveFormat)
             {
                 BufferDuration = TimeSpan.FromSeconds(30),
                 DiscardOnBufferOverflow = true,
@@ -71,22 +100,35 @@ public sealed class LoopbackTranscriber : ISpeechSource
                 // the loop against the audio clock.
                 ReadFully = false,
             };
-            _capture.DataAvailable += (_, e) => _buffer!.AddSamples(e.Buffer, 0, e.BytesRecorded);
+            capture.DataAvailable += (_, e) => buffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
 
             // capture format (float, N-ch, 44.1/48 kHz) -> mono -> 16 kHz
-            ISampleProvider mono = new DownmixToMonoSampleProvider(_buffer.ToSampleProvider());
+            ISampleProvider mono = new DownmixToMonoSampleProvider(buffer.ToSampleProvider());
             _pipeline = new WdlResamplingSampleProvider(mono, WhisperRate);
 
-            _capture.StartRecording();
-            _cts = new CancellationTokenSource();
-            _pump = Task.Run(() => PumpAsync(_cts.Token));
-            return true;
+            capture.StartRecording();
+            _capture = capture;
         }
-        catch
+    }
+
+    private void StopCapture()
+    {
+        try { _capture?.StopRecording(); } catch { }
+        try { _capture?.Dispose(); } catch { }
+        _capture = null;
+    }
+
+    // Windows calls this on its own thread and must not be blocked: switch over in the
+    // background, after a short pause so the new device is ready.
+    private void OnDefaultOutputChanged()
+    {
+        if (_cts == null || _cts.IsCancellationRequested) return;
+        _ = Task.Run(async () =>
         {
-            Cleanup();
-            return false;
-        }
+            await Task.Delay(300).ConfigureAwait(false);
+            if (_cts == null || _cts.IsCancellationRequested) return;
+            try { StartCapture(); } catch { /* no output device right now; the next change retries */ }
+        });
     }
 
     // Pull 16 kHz mono, gate on energy, and flush utterances to Whisper.
@@ -99,7 +141,8 @@ public sealed class LoopbackTranscriber : ISpeechSource
 
         while (!ct.IsCancellationRequested)
         {
-            int got = ReadFull(_pipeline!, frame);
+            var pipeline = _pipeline;
+            int got = pipeline == null ? 0 : ReadFull(pipeline, frame);
             if (got == 0) { await Task.Delay(20, ct).ConfigureAwait(false); continue; }
 
             float rms = Rms(frame, got);
@@ -181,19 +224,28 @@ public sealed class LoopbackTranscriber : ISpeechSource
         try
         {
             _cts?.Cancel();
-            _capture?.StopRecording();
+            UnwatchDefaultOutput();
+            lock (_captureLock) { try { _capture?.StopRecording(); } catch { } }
             if (_pump != null) await _pump.ConfigureAwait(false);
         }
         catch { /* best effort */ }
     }
 
+    private void UnwatchDefaultOutput()
+    {
+        try { if (_watcher != null) _devices?.UnregisterEndpointNotificationCallback(_watcher); } catch { }
+        try { _devices?.Dispose(); } catch { }
+        _watcher = null; _devices = null;
+    }
+
     private void Cleanup()
     {
-        try { _capture?.Dispose(); } catch { }
+        UnwatchDefaultOutput();
+        lock (_captureLock) StopCapture();
         try { _whisper?.Dispose(); } catch { }
         try { _whisperFactory?.Dispose(); } catch { }
-        _capture = null; _whisper = null; _whisperFactory = null;
-        _buffer = null; _pipeline = null;
+        _whisper = null; _whisperFactory = null;
+        _pipeline = null;
     }
 
     public void Dispose()
@@ -201,6 +253,24 @@ public sealed class LoopbackTranscriber : ISpeechSource
         try { _cts?.Cancel(); } catch { }
         Cleanup();
     }
+}
+
+/// Tells the transcriber when the Windows default output (what loopback captures) changes.
+internal sealed class DefaultOutputWatcher : NAudio.CoreAudioApi.Interfaces.IMMNotificationClient
+{
+    private readonly Action _changed;
+    public DefaultOutputWatcher(Action changed) => _changed = changed;
+
+    public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
+    {
+        // Windows reports each role separately; WasapiLoopbackCapture uses Multimedia.
+        if (flow == DataFlow.Render && role == Role.Multimedia) _changed();
+    }
+
+    public void OnDeviceStateChanged(string deviceId, DeviceState newState) { }
+    public void OnDeviceAdded(string pwstrDeviceId) { }
+    public void OnDeviceRemoved(string deviceId) { }
+    public void OnPropertyValueChanged(string pwstrDeviceId, PropertyKey key) { }
 }
 
 /// Averages all channels of a source into a single mono channel.

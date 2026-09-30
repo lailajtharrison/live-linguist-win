@@ -95,7 +95,6 @@ public sealed partial class MainWindow : Window
             try
             {
                 _llm = await Task.Run(() => LlamaSimplifier.Load(modelPath, useWorkedExamples: fast == null));
-                ViewModel.ModelLabel = fast != null ? "Qwen3-0.6B" : "Qwen3-1.7B";
             }
             catch { _llm = null; }
         }
