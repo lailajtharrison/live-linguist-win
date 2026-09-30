@@ -85,8 +85,8 @@ public sealed partial class MainWindow : Window
         {
             Dispatch(() =>
             {
-                ViewModel.Mode = "Modèle manquant";
-                ViewModel.Hint = "⚠️  Le modèle n'a pas été trouvé — réinstallez l'application.";
+                ViewModel.Mode = "Model missing";
+                ViewModel.Hint = "⚠️  The language model was not found. Please reinstall the app.";
             });
             _ready = true;
             return;
@@ -108,8 +108,8 @@ public sealed partial class MainWindow : Window
     {
         ViewModel.AudioWarning =
             _speech is LoopbackTranscriber lt && DateTime.UtcNow - lt.LastSoundUtc > SilenceWarningAfter
-                ? "🔇 Aucun son reçu. Vérifiez que la réunion ou la vidéo joue, et qu'elle utilise " +
-                  "la sortie audio par défaut de Windows."
+                ? "🔇 No sound is reaching the app. Check that the meeting or video is playing, " +
+                  "through the Windows default audio output."
                 : "";
     }
 
@@ -136,26 +136,26 @@ public sealed partial class MainWindow : Window
         {
             if (ok && source == AudioSource.SystemPlayback)
             {
-                ViewModel.Mode = "En direct · Réunion/vidéo";
-                ViewModel.Hint = "🔊  J'écoute le son de l'ordinateur (Teams, Zoom, vidéo). " +
-                                 "Le français que vous entendez sera simplifié ci-dessus.";
-                ViewModel.Verbatim = "En attente du son de la réunion ou de la vidéo…";
+                ViewModel.Mode = "Live · Meeting / video";
+                ViewModel.Hint = "🔊  Listening to the computer's sound (Teams, Zoom, a video). " +
+                                 "The French you hear is simplified above. Tip: “Caption box” keeps the captions on top.";
+                ViewModel.Verbatim = "Waiting for sound from the meeting or video…";
             }
             else if (ok)
             {
-                ViewModel.Mode = "En direct · Micro";
-                ViewModel.Hint = "🎤  Micro activé — parlez en français, ou écrivez ci-dessous.";
-                ViewModel.Verbatim = "Parlez en français, ou écrivez ci-dessous.";
+                ViewModel.Mode = "Live · Microphone";
+                ViewModel.Hint = "🎤  Microphone on. Speak French, or type below.";
+                ViewModel.Verbatim = "Speak French, or type below.";
             }
             else if (source == AudioSource.SystemPlayback)
             {
-                ViewModel.Mode = "Audio indisponible";
-                ViewModel.Hint = "⚠️  Le modèle audio « ggml-small-q5_1.bin » est introuvable, " +
-                                 "ou aucun son ne joue. Écrivez ci-dessous pour tester.";
+                ViewModel.Mode = "Audio unavailable";
+                ViewModel.Hint = "⚠️  The speech model “ggml-small-q5_1.bin” is missing, " +
+                                 "or no sound is playing. Type below to test.";
             }
             else
             {
-                ViewModel.Mode = "Micro éteint"; // keeps the default mic-off instructions
+                ViewModel.Mode = "Microphone off"; // keeps the default mic-off instructions
             }
         });
     }
@@ -257,9 +257,9 @@ public sealed partial class MainWindow : Window
                              width, height);
     }
 
-    // French decimal comma, one place: "Latence 3,2 s".
+    // One decimal place, English formatting to match the interface: "Latency 3.2 s".
     private static string FormatLatency(TimeSpan elapsed) =>
-        "Latence " + elapsed.TotalSeconds.ToString("0.0", CultureInfo.GetCultureInfo("fr-FR")) + " s";
+        "Latency " + elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture) + " s";
 
     // Type-to-test: simplify whatever is typed (works without a mic/speech pack).
     private void OnSimplifyClick(object sender, RoutedEventArgs e)

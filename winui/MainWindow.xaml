@@ -28,10 +28,10 @@
                        MaxLines="2" TextTrimming="CharacterEllipsis" FontFamily="Segoe UI" />
         </StackPanel>
         <StackPanel Grid.Column="1" VerticalAlignment="Top" Spacing="6" Margin="12,0,0,0">
-            <Button x:Name="ExpandButton" Content="Agrandir" Click="OnExpandClick" FontSize="12"
-                    ToolTipService.ToolTip="Revenir à la grande fenêtre" />
+            <Button x:Name="ExpandButton" Content="Expand" Click="OnExpandClick" FontSize="12"
+                    ToolTipService.ToolTip="Back to the full window" />
             <ToggleButton x:Name="OriginalToggle" Content="Original" Click="OnOriginalToggleClick" FontSize="12"
-                          ToolTipService.ToolTip="Afficher aussi la phrase entendue" />
+                          ToolTipService.ToolTip="Also show the sentence as it was heard" />
         </StackPanel>
     </Grid>
 
@@ -51,23 +51,23 @@
                            Foreground="#FFEAF0F6" FontFamily="Segoe UI" />
                 <Border Background="#FF1A1F26" BorderBrush="#FF2A3038" BorderThickness="1"
                         CornerRadius="14" Padding="12,6" VerticalAlignment="Center">
-                    <TextBlock Text="Français · FALC" FontSize="13" FontWeight="Medium"
+                    <TextBlock Text="French · Easy-to-read (FALC)" FontSize="13" FontWeight="Medium"
                                Foreground="#FFB8C0CC" FontFamily="Segoe UI" />
                 </Border>
                 <!-- Audio source: the mic (in-person) vs the speakers (a Teams/Zoom
                      partner or a video — what a call actually needs). -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="14" Margin="8,0,0,0">
-                    <RadioButton x:Name="SourceMic" GroupName="src" Content="🎤 Micro" IsChecked="True"
+                    <RadioButton x:Name="SourceMic" GroupName="src" Content="🎤 Microphone" IsChecked="True"
                                  Checked="OnSourceChanged" Foreground="#FFB8C0CC" FontSize="13" FontFamily="Segoe UI" />
-                    <RadioButton x:Name="SourceLoopback" GroupName="src" Content="🔊 Réunion / vidéo"
+                    <RadioButton x:Name="SourceLoopback" GroupName="src" Content="🔊 Meeting / video"
                                  Checked="OnSourceChanged" Foreground="#FFB8C0CC" FontSize="13" FontFamily="Segoe UI" />
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Spacing="8">
-                <Button x:Name="CaptionButton" Content="Sous-titres" Click="OnCaptionModeClick"
+                <Button x:Name="CaptionButton" Content="Caption box" Click="OnCaptionModeClick"
                         FontSize="13" Margin="0,0,12,0"
-                        ToolTipService.ToolTip="Petite fenêtre toujours visible, par-dessus Zoom, Teams ou YouTube" />
+                        ToolTipService.ToolTip="A small window that stays on top of Zoom, Teams or YouTube" />
                 <Ellipse Width="10" Height="10" Fill="#FF7A8594" VerticalAlignment="Center" />
                 <TextBlock Text="{x:Bind ViewModel.Mode, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
                            Foreground="#FF9AA6B4" FontFamily="Segoe UI" VerticalAlignment="Center"
@@ -81,7 +81,7 @@
             <Border Background="#FF14181E" CornerRadius="14" Padding="36,26"
                     BorderBrush="#FF20262E" BorderThickness="1">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="VOTRE TEXTE" FontSize="13" FontWeight="Bold"
+                    <TextBlock Text="WHAT WAS SAID" FontSize="13" FontWeight="Bold"
                                Foreground="#FFB8C0CC" FontFamily="Segoe UI" CharacterSpacing="140" />
                     <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}" FontSize="22" LineHeight="34"
                                Foreground="#FFDFE4EA" TextWrapping="Wrap" FontFamily="Segoe UI" />
@@ -90,7 +90,7 @@
             <Border Background="#FF0D1F18" CornerRadius="14" Padding="36,30"
                     BorderBrush="#FF244A40" BorderThickness="1">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="LANGAGE SIMPLE · FALC" FontSize="13" FontWeight="Bold"
+                    <TextBlock Text="EASY FRENCH · FALC" FontSize="13" FontWeight="Bold"
                                Foreground="#FF5EEAD4" FontFamily="Segoe UI" CharacterSpacing="140" />
                     <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="34" FontWeight="Bold"
                                LineHeight="46" Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI" />
@@ -107,7 +107,7 @@
 
         <!-- Type-to-simplify (the obvious primary action) -->
         <StackPanel Grid.Row="3" Margin="24,0,24,16" HorizontalAlignment="Center" MaxWidth="1000" Width="1000" Spacing="6">
-            <TextBlock Text="Écrivez ou collez du français, puis cliquez sur « Simplifier »"
+            <TextBlock Text="Type or paste French, then click Simplify"
                        FontSize="13" Foreground="#FF9AA6B4" FontFamily="Segoe UI" />
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -115,9 +115,9 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="InputBox" Grid.Column="0" Height="48" FontSize="16"
-                         PlaceholderText="Par exemple : « Il faudrait que vous soyez présent avant qu'il ne parte. »" />
+                         PlaceholderText="For example: Il faudrait que vous soyez présent avant qu'il ne parte." />
                 <Button Grid.Column="1" Margin="12,0,0,0" Height="48" Padding="22,0"
-                        Content="Simplifier" Click="OnSimplifyClick" />
+                        Content="Simplify" Click="OnSimplifyClick" />
             </Grid>
         </StackPanel>
 

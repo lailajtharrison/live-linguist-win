@@ -36,4 +36,4 @@ Name: "{group}\Live Linguist"; Filename: "{app}\LiveLinguistWinUI.exe"
 Name: "{autodesktop}\Live Linguist"; Filename: "{app}\LiveLinguistWinUI.exe"
 
 [Run]
-Filename: "{app}\LiveLinguistWinUI.exe"; Description: "Lancer Live Linguist maintenant"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\LiveLinguistWinUI.exe"; Description: "Launch Live Linguist now"; Flags: nowait postinstall skipifsilent

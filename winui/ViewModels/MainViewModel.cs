@@ -6,18 +6,20 @@ namespace LiveLinguistWinUI.ViewModels;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     // First-run state: guidance, not a confusing pre-filled sample.
-    private string _verbatim = "Votre texte apparaîtra ici.";
-    private string _simplified = "La version simple apparaîtra ici.";
-    private string _mode = "Micro éteint";
+    // Interface text is in English so any student can operate the app; the captions
+    // themselves stay French, since easy French is what they are there to read.
+    private string _verbatim = "The French you hear will appear here.";
+    private string _simplified = "The easy-French version will appear here.";
+    private string _mode = "Microphone off";
     // The mic hint. Default = the "mic off" instructions (also what CI screenshots).
     private string _hint =
-        "🎤  Le micro n'est pas activé. Écrivez ci-dessous pour essayer tout de suite.\n" +
-        "Pour parler en français : Paramètres Windows → Heure et langue → Voix → ajouter « Français (France) », puis rouvrez l'application.";
+        "🎤  The microphone is not on. Type below to try it right away.\n" +
+        "To speak French: Windows Settings → Time & language → Speech → add “French (France)”, then reopen the app.";
 
     // Measured round-trip for the last phrase. Em dash until there is a real
     // measurement — the old status bar hard-coded "~1,8 s", which was wrong on
     // any machine slower than the one it was written on.
-    private string _latency = "Latence —";
+    private string _latency = "Latency —";
 
     // Caption box: the caption before the current one, shown dimmer above it so a reader
     // who looked away for a second can catch up.
@@ -45,7 +47,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         set { Set(ref _audioWarning, value); PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasAudioWarning))); }
     }
     public bool HasAudioWarning => _audioWarning.Length > 0;
-    public string StatusText => $"Sur l'appareil · {_modelLabel} · rien ne quitte ce PC";
+    public string StatusText => $"On this device · {_modelLabel} · nothing leaves this PC";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
