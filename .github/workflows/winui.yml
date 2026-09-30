@@ -54,6 +54,10 @@ jobs:
           $len = (Get-Item screenshot.png).Length
           Write-Host "screenshot.png is $len bytes"
           if ($len -lt 2000) { throw "screenshot.png suspiciously small ($len bytes)" }
+          # TEMP (ui-polish): artifact storage quota is full, so print the PNG to the log
+          Write-Host "PNGB64-BEGIN"
+          Write-Host ([Convert]::ToBase64String([IO.File]::ReadAllBytes("screenshot.png")))
+          Write-Host "PNGB64-END"
 
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
