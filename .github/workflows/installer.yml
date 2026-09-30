@@ -88,4 +88,4 @@ jobs:
             --target ${{ github.sha }} `
             --prerelease --latest=false `
             --title "Live Linguist - French (v0.8, for review)" `
-            --notes "Faster captions and a caption box for calls and videos. The simplifier is now a fine-tuned Qwen3-0.6B: about 3x faster on a laptop CPU than the 1.7B, and on the evaluation set it keeps questions as questions and invents less. Captions stream in as they are written. A new English interface with a welcome screen that asks where the French comes from (a call or video, or the microphone). 'Caption box' shrinks the app to a small window that stays on top of Zoom, Teams or YouTube. The app warns when it hears no audio. Installer about 700 MB smaller."
+            --notes-file installer/RELEASE_NOTES.md
