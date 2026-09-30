@@ -35,100 +35,123 @@
         </StackPanel>
     </Grid>
 
-    <Grid x:Name="RootGrid" Width="1280" Height="720" Background="#FF0B0D10" RequestedTheme="Dark">
+    <!-- Main window: fills whatever size the student gives it. Header and status bar span
+         the full width; the captions and input sit in one centred column. -->
+    <Grid x:Name="RootGrid" Background="#FF0B0D10" RequestedTheme="Dark">
         <Grid.RowDefinitions>
-            <RowDefinition Height="72" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="46" />
         </Grid.RowDefinitions>
 
-        <!-- Top bar -->
-        <Grid Grid.Row="0" Padding="28,0">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="14">
-                <TextBlock Text="Live Linguist" FontSize="20" FontWeight="SemiBold"
-                           Foreground="#FFEAF0F6" FontFamily="Segoe UI" />
-                <Border Background="#FF1A1F26" BorderBrush="#FF2A3038" BorderThickness="1"
-                        CornerRadius="14" Padding="12,6" VerticalAlignment="Center">
-                    <TextBlock Text="French · Easy-to-read (FALC)" FontSize="13" FontWeight="Medium"
-                               Foreground="#FFB8C0CC" FontFamily="Segoe UI" />
-                </Border>
-                <!-- Audio source: the mic (in-person) vs the speakers (a Teams/Zoom
-                     partner or a video — what a call actually needs). -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="14" Margin="8,0,0,0">
-                    <RadioButton x:Name="SourceMic" GroupName="src" Content="🎤 Microphone" IsChecked="True"
-                                 Checked="OnSourceChanged" Foreground="#FFB8C0CC" FontSize="13" FontFamily="Segoe UI" />
-                    <RadioButton x:Name="SourceLoopback" GroupName="src" Content="🔊 Meeting / video"
-                                 Checked="OnSourceChanged" Foreground="#FFB8C0CC" FontSize="13" FontFamily="Segoe UI" />
-                </StackPanel>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                        VerticalAlignment="Center" Spacing="8">
-                <Button x:Name="CaptionButton" Content="Caption box" Click="OnCaptionModeClick"
-                        FontSize="13" Margin="0,0,12,0"
-                        ToolTipService.ToolTip="A small window that stays on top of Zoom, Teams or YouTube" />
-                <Ellipse Width="10" Height="10" Fill="#FF7A8594" VerticalAlignment="Center" />
-                <TextBlock Text="{x:Bind ViewModel.Mode, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
-                           Foreground="#FF9AA6B4" FontFamily="Segoe UI" VerticalAlignment="Center"
-                           CharacterSpacing="40" />
-            </StackPanel>
-        </Grid>
-
-        <!-- Body -->
-        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
-                    MaxWidth="1000" Width="1000" Spacing="16">
-            <Border Background="#FF14181E" CornerRadius="14" Padding="36,26"
-                    BorderBrush="#FF20262E" BorderThickness="1">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="WHAT WAS SAID" FontSize="13" FontWeight="Bold"
-                               Foreground="#FFB8C0CC" FontFamily="Segoe UI" CharacterSpacing="140" />
-                    <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}" FontSize="22" LineHeight="34"
-                               Foreground="#FFDFE4EA" TextWrapping="Wrap" FontFamily="Segoe UI" />
-                </StackPanel>
-            </Border>
-            <Border Background="#FF0D1F18" CornerRadius="14" Padding="36,30"
-                    BorderBrush="#FF244A40" BorderThickness="1">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="EASY FRENCH · FALC" FontSize="13" FontWeight="Bold"
-                               Foreground="#FF5EEAD4" FontFamily="Segoe UI" CharacterSpacing="140" />
-                    <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="34" FontWeight="Bold"
-                               LineHeight="46" Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
-
-        <!-- Mic hint (self-explanatory: why demo, how to enable the mic) -->
-        <Border Grid.Row="2" Margin="24,0,24,8" HorizontalAlignment="Center" MaxWidth="1000" Width="1000"
-                Background="#1A5EEAD4" BorderBrush="#335EEAD4" BorderThickness="1" CornerRadius="10" Padding="16,10">
-            <TextBlock Text="{x:Bind ViewModel.Hint, Mode=OneWay}" FontSize="14" LineHeight="21"
-                       Foreground="#FFCFF3EA" TextWrapping="Wrap" FontFamily="Segoe UI" />
-        </Border>
-
-        <!-- Type-to-simplify (the obvious primary action) -->
-        <StackPanel Grid.Row="3" Margin="24,0,24,16" HorizontalAlignment="Center" MaxWidth="1000" Width="1000" Spacing="6">
-            <TextBlock Text="Type or paste French, then click Simplify"
-                       FontSize="13" Foreground="#FF9AA6B4" FontFamily="Segoe UI" />
-            <Grid>
+        <!-- Header: name + language on the left; live status + caption box on the right -->
+        <Border Grid.Row="0" Background="#FF0E1115" BorderBrush="#FF1C2129" BorderThickness="0,0,0,1"
+                Padding="28,14">
+            <Grid ColumnSpacing="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="InputBox" Grid.Column="0" Height="48" FontSize="16"
-                         PlaceholderText="For example: Il faudrait que vous soyez présent avant qu'il ne parte." />
-                <Button Grid.Column="1" Margin="12,0,0,0" Height="48" Padding="22,0"
-                        Content="Simplify" Click="OnSimplifyClick" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                    <TextBlock Text="Live Linguist" FontSize="20" FontWeight="SemiBold"
+                               Foreground="#FFEAF0F6" VerticalAlignment="Center" />
+                    <Border Background="#FF1A1F26" BorderBrush="#FF2A3038" BorderThickness="1"
+                            CornerRadius="12" Padding="10,4" VerticalAlignment="Center">
+                        <TextBlock Text="French · Easy-to-read (FALC)" FontSize="12" FontWeight="Medium"
+                                   Foreground="#FFB8C0CC" />
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="16">
+                    <!-- Live status: green dot while listening, grey otherwise -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Ellipse Width="9" Height="9" Fill="#FF34D399" VerticalAlignment="Center"
+                                 Visibility="{x:Bind ViewModel.IsLive, Mode=OneWay}" />
+                        <Ellipse Width="9" Height="9" Fill="#FF6B7480" VerticalAlignment="Center"
+                                 Visibility="{x:Bind ViewModel.IsNotLive, Mode=OneWay}" />
+                        <TextBlock Text="{x:Bind ViewModel.Mode, Mode=OneWay}" FontSize="13"
+                                   Foreground="#FFB8C0CC" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button x:Name="CaptionButton" Click="OnCaptionModeClick" Style="{StaticResource AccentButtonStyle}"
+                            ToolTipService.ToolTip="A small window that stays on top of Zoom, Teams or YouTube">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE8A7;" FontSize="14" />
+                            <TextBlock Text="Caption box" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
-        </StackPanel>
+        </Border>
+
+        <!-- Body: one centred column that scrolls if the window is short -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid MaxWidth="1000" Margin="32,24,32,24" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Audio source: the mic (in person) vs the computer's sound (a Teams/Zoom
+                     partner or a video, what a call actually needs). -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20">
+                    <TextBlock Text="Listen to" FontSize="14" Foreground="#FF9AA6B4" VerticalAlignment="Center" />
+                    <RadioButton x:Name="SourceMic" GroupName="src" IsChecked="True" Checked="OnSourceChanged" MinWidth="0">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE720;" FontSize="14" />
+                            <TextBlock Text="Microphone" />
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="SourceLoopback" GroupName="src" Checked="OnSourceChanged" MinWidth="0">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE767;" FontSize="14" />
+                            <TextBlock Text="Meeting / video" />
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+
+                <Border Grid.Row="1" Background="#FF14181E" CornerRadius="12" Padding="32,22"
+                        BorderBrush="#FF20262E" BorderThickness="1">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="WHAT WAS SAID" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="#FF9AA6B4" CharacterSpacing="120" />
+                        <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}" FontSize="20" LineHeight="30"
+                                   Foreground="#FFDFE4EA" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    </StackPanel>
+                </Border>
+
+                <!-- The caption is the point of the app: the biggest, brightest thing on screen -->
+                <Border Grid.Row="2" Background="#FF0D1F18" CornerRadius="12" Padding="32,26" MinHeight="170"
+                        BorderBrush="#FF244A40" BorderThickness="1">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="EASY FRENCH · FALC" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="#FF5EEAD4" CharacterSpacing="120" />
+                        <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="34" FontWeight="Bold"
+                                   LineHeight="46" Foreground="#FFF3F7FA" TextWrapping="Wrap"
+                                   IsTextSelectionEnabled="True" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Notices: shown only when there is something to act on -->
+                <StackPanel Grid.Row="3" Spacing="8">
+                    <InfoBar IsOpen="{x:Bind ViewModel.HasAudioWarning, Mode=OneWay}" IsClosable="False"
+                             Severity="Warning" Message="{x:Bind ViewModel.AudioWarning, Mode=OneWay}" />
+                    <InfoBar IsOpen="{x:Bind ViewModel.HasHint, Mode=OneWay}" IsClosable="False"
+                             Severity="{x:Bind ViewModel.HintSeverity, Mode=OneWay}"
+                             Title="{x:Bind ViewModel.HintTitle, Mode=OneWay}"
+                             Message="{x:Bind ViewModel.Hint, Mode=OneWay}" />
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
 
         <!-- Status bar -->
-        <Border Grid.Row="4" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
-            <Grid Padding="28,0">
-                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"
-                           FontFamily="Segoe UI" Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
-                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13"
-                           Foreground="#FF8B93A0" FontFamily="Segoe UI"
-                           Text="{x:Bind ViewModel.Latency, Mode=OneWay}" />
+        <Border Grid.Row="2" Background="#FF0A0C0F" BorderBrush="#FF1C2129" BorderThickness="0,1,0,0"
+                Padding="28,10">
+            <Grid>
+                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="#FF8B93A0"
+                           Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"
+                           Foreground="#FF8B93A0" Text="{x:Bind ViewModel.Latency, Mode=OneWay}" />
             </Grid>
         </Border>
     </Grid>

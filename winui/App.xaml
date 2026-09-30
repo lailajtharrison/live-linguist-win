@@ -3,4 +3,9 @@
     x:Class="LiveLinguistWinUI.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <!-- The Windows 11 (Fluent) control styles. Without these, buttons, radio buttons
+             and text boxes fall back to the old square look. -->
+        <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+    </Application.Resources>
 </Application>

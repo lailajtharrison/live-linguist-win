@@ -10,6 +10,7 @@ using LiveLinguistWinUI.ViewModels;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics;
 using Windows.Graphics.Imaging;
@@ -26,6 +27,9 @@ public sealed partial class MainWindow : Window
 
     // How long the meeting/video source may hear nothing before the student is told.
     private static readonly TimeSpan SilenceWarningAfter = TimeSpan.FromSeconds(15);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hwnd);
 
     public MainViewModel ViewModel { get; } = new();
 
@@ -47,6 +51,9 @@ public sealed partial class MainWindow : Window
     {
         this.InitializeComponent();
         Title = "Live Linguist";
+        // A comfortable first size, in physical pixels for this screen's scaling.
+        double scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
+        AppWindow.Resize(new SizeInt32((int)(1120 * scale), (int)(820 * scale)));
         RootGrid.Loaded += OnRootLoaded;
         Closed += (_, _) => { if (_captionMode) SaveCaptionRect(); };
     }
@@ -86,7 +93,7 @@ public sealed partial class MainWindow : Window
             Dispatch(() =>
             {
                 ViewModel.Mode = "Model missing";
-                ViewModel.Hint = "⚠️  The language model was not found. Please reinstall the app.";
+                SetHint(InfoBarSeverity.Error, "The language model was not found.", "Please reinstall the app.");
             });
             _ready = true;
             return;
@@ -108,7 +115,7 @@ public sealed partial class MainWindow : Window
     {
         ViewModel.AudioWarning =
             _speech is LoopbackTranscriber lt && DateTime.UtcNow - lt.LastSoundUtc > SilenceWarningAfter
-                ? "🔇 No sound is reaching the app. Check that the meeting or video is playing, " +
+                ? "No sound is reaching the app. Check that the meeting or video is playing, " +
                   "through the Windows default audio output."
                 : "";
     }
@@ -137,21 +144,21 @@ public sealed partial class MainWindow : Window
             if (ok && source == AudioSource.SystemPlayback)
             {
                 ViewModel.Mode = "Live · Meeting / video";
-                ViewModel.Hint = "🔊  Listening to the computer's sound (Teams, Zoom, a video). " +
-                                 "The French you hear is simplified above. Tip: “Caption box” keeps the captions on top.";
+                SetHint(InfoBarSeverity.Informational, "Tip:",
+                        "“Caption box” keeps the captions on top of Teams, Zoom or a video.");
                 ViewModel.Verbatim = "Waiting for sound from the meeting or video…";
             }
             else if (ok)
             {
                 ViewModel.Mode = "Live · Microphone";
-                ViewModel.Hint = "🎤  Microphone on. Speak French, or type below.";
-                ViewModel.Verbatim = "Speak French, or type below.";
+                ViewModel.Hint = "";   // nothing to act on; the cards already say "speak"
+                ViewModel.Verbatim = "Listening… speak French.";
             }
             else if (source == AudioSource.SystemPlayback)
             {
                 ViewModel.Mode = "Audio unavailable";
-                ViewModel.Hint = "⚠️  The speech model “ggml-small-q5_1.bin” is missing, " +
-                                 "or no sound is playing. Type below to test.";
+                SetHint(InfoBarSeverity.Warning, "Can't listen to the computer's sound.",
+                        "The speech model “ggml-small-q5_1.bin” is missing, or no sound is playing.");
             }
             else
             {
@@ -261,14 +268,15 @@ public sealed partial class MainWindow : Window
     private static string FormatLatency(TimeSpan elapsed) =>
         "Latency " + elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture) + " s";
 
-    // Type-to-test: simplify whatever is typed (works without a mic/speech pack).
-    private void OnSimplifyClick(object sender, RoutedEventArgs e)
-    {
-        var text = InputBox.Text;
-        if (!string.IsNullOrWhiteSpace(text)) _ = OnPhraseAsync(text);
-    }
 
     private void Dispatch(Action action) => DispatcherQueue.TryEnqueue(() => action());
+
+    private void SetHint(InfoBarSeverity severity, string title, string message)
+    {
+        ViewModel.HintSeverity = severity;
+        ViewModel.HintTitle = title;
+        ViewModel.Hint = message;
+    }
 
     // Next to the exe first (what the installer does), then the per-user data folder
     // (what setup.ps1 populates). Null when the model is in neither.
