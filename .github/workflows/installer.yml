@@ -58,7 +58,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           New-Item -ItemType Directory -Force -Path model | Out-Null
-          gh release download v0.1-fr --repo ${{ github.repository }} --pattern "*.gguf" --dir model
+          gh release download v0.1-fr --repo ${{ github.repository }} --pattern "ll-fr-0.6b-v2-Q4_K_M.gguf" --dir model
           gh release download v0.1-fr --repo ${{ github.repository }} --pattern "ggml-small-q5_1.bin" --dir model
           Get-ChildItem model | Select-Object Name,Length
 
@@ -75,14 +75,17 @@ jobs:
 
       # Publish to a Release rather than an artifact: release assets do not count
       # against the Actions artifact-storage quota, and give a stable download URL.
+      # Published as a pre-release for review; it becomes Latest only by a deliberate
+      # edit after Abby signs off. Only this version's own release is ever replaced.
       - name: Publish installer to release
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete v0.7-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
-          gh release create v0.7-fr LiveLinguist-fr-Setup.exe `
+          gh release delete v0.8-fr --repo ${{ github.repository }} --yes --cleanup-tag 2>$null
+          gh release create v0.8-fr LiveLinguist-fr-Setup.exe `
             --repo ${{ github.repository }} `
             --target ${{ github.sha }} `
-            --title "Live Linguist - French (v0.7)" `
-            --notes "Fixes 'Réunion / vidéo', which started correctly but never produced a caption and pegged a CPU core. The audio pump ran about 1300x faster than audio arrives, shredding every utterance into silence-padded fragments Whisper could not read. Captioning a French video or Teams call now works."
+            --prerelease --latest=false `
+            --title "Live Linguist - French (v0.8, for review)" `
+            --notes "Faster captions and a caption box for calls and videos. The simplifier is now a fine-tuned Qwen3-0.6B: about 3x faster on a laptop CPU than the 1.7B, and on the evaluation set it keeps questions as questions and invents less. Captions stream in as they are written. 'Sous-titres' shrinks the app to a small window that stays on top of Zoom, Teams or YouTube. The app warns when it hears no audio. Installer about 700 MB smaller."

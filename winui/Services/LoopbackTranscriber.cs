@@ -38,6 +38,10 @@ public sealed class LoopbackTranscriber : ISpeechSource
     public event Action<string>? Hypothesis;
     public event Action<string>? Phrase;
 
+    /// When audio above the speech threshold was last heard. The UI uses it to tell the
+    /// student when nothing is reaching the app (e.g. Zoom playing on non-default headphones).
+    public DateTime LastSoundUtc { get; private set; } = DateTime.UtcNow;
+
     public LoopbackTranscriber(string whisperModelPath) => _modelPath = whisperModelPath;
 
     /// Returns false if the Whisper model or a render device is unavailable.
@@ -104,6 +108,7 @@ public sealed class LoopbackTranscriber : ISpeechSource
 
             if (voiced)
             {
+                LastSoundUtc = DateTime.UtcNow;
                 hasSpeech = true;
                 trailingSilenceMs = 0;
                 utterance.AddRange(new ArraySegment<float>(frame, 0, got));

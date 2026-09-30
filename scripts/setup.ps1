@@ -1,9 +1,9 @@
-# Live Linguist (French) — one-time setup on the target Windows PC.
+﻿# Live Linguist (French) — one-time setup on the target Windows PC.
 # Run this from the unzipped bundle folder.
 $ErrorActionPreference = "Stop"
 $bundle = $PSScriptRoot
 $appDir = Join-Path $bundle "LiveLinguist"
-$modelName = "qwen3-1.7b-easylang-fr-Q4_K_M.gguf"
+$modelName = "ll-fr-0.6b-v2-Q4_K_M.gguf"
 
 # 1) Model directory
 $modelDir = Join-Path $env:LOCALAPPDATA "LiveLinguist"
@@ -19,7 +19,7 @@ if ($src) {
 } elseif (Test-Path $dst) {
     Write-Host "[ok] Model already present -> $dst"
 } else {
-    Write-Warning "[todo] Put '$modelName' (1.1 GB) in this folder and re-run setup.ps1, or copy it to $modelDir"
+    Write-Warning "[todo] Put '$modelName' (400 MB) in this folder and re-run setup.ps1, or copy it to $modelDir"
 }
 
 # 2) French speech pack check

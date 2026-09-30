@@ -4,6 +4,37 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <Grid x:Name="Shell" Background="#FF0B0D10" RequestedTheme="Dark">
+
+    <!-- Caption box: a small always-on-top strip over Zoom/Teams/YouTube. Only the
+         simplified French, large; the previous caption dimmed above it. -->
+    <Grid x:Name="CaptionView" Visibility="Collapsed" Background="#FF0B0D10" Padding="20,10,12,10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0" VerticalAlignment="Bottom" Spacing="4">
+            <TextBlock Text="{x:Bind ViewModel.AudioWarning, Mode=OneWay}"
+                       Visibility="{x:Bind ViewModel.HasAudioWarning, Mode=OneWay}"
+                       FontSize="14" Foreground="#FFFBBF24" TextWrapping="Wrap" FontFamily="Segoe UI" />
+            <TextBlock Text="{x:Bind ViewModel.PreviousSimplified, Mode=OneWay}" FontSize="18" LineHeight="24"
+                       Foreground="#FF8B93A0" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                       FontFamily="Segoe UI" />
+            <TextBlock Text="{x:Bind ViewModel.Simplified, Mode=OneWay}" FontSize="26" FontWeight="Bold"
+                       LineHeight="34" Foreground="#FFF3F7FA" TextWrapping="Wrap" FontFamily="Segoe UI" />
+            <TextBlock Text="{x:Bind ViewModel.Verbatim, Mode=OneWay}"
+                       Visibility="{x:Bind ViewModel.ShowOriginal, Mode=OneWay}"
+                       FontSize="14" FontStyle="Italic" Foreground="#FF9AA6B4" TextWrapping="Wrap"
+                       MaxLines="2" TextTrimming="CharacterEllipsis" FontFamily="Segoe UI" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" VerticalAlignment="Top" Spacing="6" Margin="12,0,0,0">
+            <Button x:Name="ExpandButton" Content="Agrandir" Click="OnExpandClick" FontSize="12"
+                    ToolTipService.ToolTip="Revenir à la grande fenêtre" />
+            <ToggleButton x:Name="OriginalToggle" Content="Original" Click="OnOriginalToggleClick" FontSize="12"
+                          ToolTipService.ToolTip="Afficher aussi la phrase entendue" />
+        </StackPanel>
+    </Grid>
+
     <Grid x:Name="RootGrid" Width="1280" Height="720" Background="#FF0B0D10" RequestedTheme="Dark">
         <Grid.RowDefinitions>
             <RowDefinition Height="72" />
@@ -34,6 +65,9 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Spacing="8">
+                <Button x:Name="CaptionButton" Content="Sous-titres" Click="OnCaptionModeClick"
+                        FontSize="13" Margin="0,0,12,0"
+                        ToolTipService.ToolTip="Petite fenêtre toujours visible, par-dessus Zoom, Teams ou YouTube" />
                 <Ellipse Width="10" Height="10" Fill="#FF7A8594" VerticalAlignment="Center" />
                 <TextBlock Text="{x:Bind ViewModel.Mode, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
                            Foreground="#FF9AA6B4" FontFamily="Segoe UI" VerticalAlignment="Center"
@@ -91,11 +125,12 @@
         <Border Grid.Row="4" Background="#FF0A0C0F" BorderBrush="#0FFFFFFF" BorderThickness="0,1,0,0">
             <Grid Padding="28,0">
                 <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#FF8B93A0"
-                           FontFamily="Segoe UI" Text="Sur l'appareil · Qwen3-1.7B · rien ne quitte ce PC" />
+                           FontFamily="Segoe UI" Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
                 <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13"
                            Foreground="#FF8B93A0" FontFamily="Segoe UI"
                            Text="{x:Bind ViewModel.Latency, Mode=OneWay}" />
             </Grid>
         </Border>
+    </Grid>
     </Grid>
 </Window>

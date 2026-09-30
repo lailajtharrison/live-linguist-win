@@ -3,11 +3,15 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using System.Threading.Tasks;
 using LiveLinguistWinUI.Services;
 using LiveLinguistWinUI.ViewModels;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Graphics;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 
@@ -15,6 +19,14 @@ namespace LiveLinguistWinUI;
 
 public sealed partial class MainWindow : Window
 {
+    // The fine-tuned 0.6B (v0.8): about 3x faster than the 1.7B on a laptop CPU, trained on
+    // the bare prompt. The 1.7B is still found if it is all that is installed.
+    private const string FastModelName = "ll-fr-0.6b-v2-Q4_K_M.gguf";
+    private const string LegacyModelName = "qwen3-1.7b-easylang-fr-Q4_K_M.gguf";
+
+    // How long the meeting/video source may hear nothing before the student is told.
+    private static readonly TimeSpan SilenceWarningAfter = TimeSpan.FromSeconds(15);
+
     public MainViewModel ViewModel { get; } = new();
 
     private ISpeechSource? _speech;
@@ -22,10 +34,21 @@ public sealed partial class MainWindow : Window
     private AudioSource _source = AudioSource.Microphone;
     private bool _ready;   // suppress the RadioButton's initial Checked during init
 
+    // One phrase is simplified at a time, in arrival order, so streamed captions never
+    // interleave and the previous-caption line stays in sequence.
+    private readonly SemaphoreSlim _simplifyGate = new(1, 1);
+    private string _lastCaption = "";
+
+    private DispatcherQueueTimer? _silenceTimer;
+    private bool _captionMode;
+    private RectInt32 _fullWindowRect;
+
     public MainWindow()
     {
         this.InitializeComponent();
+        Title = "Live Linguist";
         RootGrid.Loaded += OnRootLoaded;
+        Closed += (_, _) => { if (_captionMode) SaveCaptionRect(); };
     }
 
     private async void OnRootLoaded(object sender, RoutedEventArgs e)
@@ -46,10 +69,16 @@ public sealed partial class MainWindow : Window
     // Load the LLM once, then start the selected audio source.
     private async Task GoLiveAsync()
     {
-        var modelPath = ModelPath();
-        if (File.Exists(modelPath))
+        var fast = FindModel(FastModelName);
+        var modelPath = fast ?? FindModel(LegacyModelName);
+        if (modelPath != null)
         {
-            try { _llm = LlamaSimplifier.Load(modelPath); } catch { _llm = null; }
+            try
+            {
+                _llm = LlamaSimplifier.Load(modelPath, useWorkedExamples: fast == null);
+                ViewModel.ModelLabel = fast != null ? "Qwen3-0.6B" : "Qwen3-1.7B";
+            }
+            catch { _llm = null; }
         }
 
         if (_llm == null)
@@ -65,6 +94,23 @@ public sealed partial class MainWindow : Window
 
         await StartSourceAsync(_source);
         _ready = true;
+
+        _silenceTimer = DispatcherQueue.CreateTimer();
+        _silenceTimer.Interval = TimeSpan.FromSeconds(2);
+        _silenceTimer.Tick += (_, _) => UpdateAudioWarning();
+        _silenceTimer.Start();
+    }
+
+    // Tells the student when the meeting/video source is hearing nothing: most often the
+    // call or video is muted, paused, or playing through headphones that are not the
+    // Windows default output (loopback captures the default output only).
+    private void UpdateAudioWarning()
+    {
+        ViewModel.AudioWarning =
+            _speech is LoopbackTranscriber lt && DateTime.UtcNow - lt.LastSoundUtc > SilenceWarningAfter
+                ? "🔇 Aucun son reçu. Vérifiez que la réunion ou la vidéo joue, et qu'elle utilise " +
+                  "la sortie audio par défaut de Windows."
+                : "";
     }
 
     // Start (or restart) capture from the chosen source, wiring it into the pipeline.
@@ -123,25 +169,92 @@ public sealed partial class MainWindow : Window
         _ = StartSourceAsync(wanted);
     }
 
-    // A finalized phrase: show it verbatim, then simplify in the background (burst).
+    // A finalized phrase: show it verbatim, then simplify it, streaming the caption in as
+    // it is generated so the reader is not left waiting for the whole rewrite.
     private async Task OnPhraseAsync(string text)
     {
         Dispatch(() => ViewModel.Verbatim = text);
         if (_llm == null) return;
+        await _simplifyGate.WaitAsync();
         try
         {
             var sw = Stopwatch.StartNew();
-            var simple = await _llm.SimplifyAsync(Prompts.FrenchFalc, text);
+            bool started = false;
+            void Show(string caption) => Dispatch(() =>
+            {
+                if (!started)
+                {
+                    started = true;
+                    ViewModel.PreviousSimplified = _lastCaption;
+                }
+                ViewModel.Simplified = caption;
+            });
+
+            // null = the model answered in English; showing the French that was actually
+            // said is always better than a wrong-language caption.
+            var simple = await _llm.SimplifyAsync(Prompts.FrenchFalc, text, Show) ?? text;
             sw.Stop();
             var latency = FormatLatency(sw.Elapsed);
             if (!string.IsNullOrWhiteSpace(simple))
+            {
+                Show(simple);
                 Dispatch(() =>
                 {
-                    ViewModel.Simplified = simple;
+                    _lastCaption = simple;
                     ViewModel.Latency = latency;
                 });
+            }
         }
         catch { /* skip a bad phrase rather than crash the caption loop */ }
+        finally { _simplifyGate.Release(); }
+    }
+
+    // ---- Caption box -------------------------------------------------------------
+
+    private void OnCaptionModeClick(object sender, RoutedEventArgs e) => EnterCaptionMode();
+
+    private void OnExpandClick(object sender, RoutedEventArgs e) => ExitCaptionMode();
+
+    private void OnOriginalToggleClick(object sender, RoutedEventArgs e) =>
+        ViewModel.ShowOriginal = OriginalToggle.IsChecked == true;
+
+    // Shrink to a strip that stays on top of the call or video, where the student left it
+    // last time, or else along the bottom of the screen.
+    private void EnterCaptionMode()
+    {
+        if (_captionMode) return;
+        _captionMode = true;
+        _fullWindowRect = new RectInt32(AppWindow.Position.X, AppWindow.Position.Y,
+                                        AppWindow.Size.Width, AppWindow.Size.Height);
+        RootGrid.Visibility = Visibility.Collapsed;
+        CaptionView.Visibility = Visibility.Visible;
+        if (AppWindow.Presenter is OverlappedPresenter p) p.IsAlwaysOnTop = true;
+        AppWindow.MoveAndResize(CaptionWindowSettings.Load() ?? DefaultCaptionRect());
+    }
+
+    private void ExitCaptionMode()
+    {
+        if (!_captionMode) return;
+        SaveCaptionRect();
+        _captionMode = false;
+        if (AppWindow.Presenter is OverlappedPresenter p) p.IsAlwaysOnTop = false;
+        CaptionView.Visibility = Visibility.Collapsed;
+        RootGrid.Visibility = Visibility.Visible;
+        AppWindow.MoveAndResize(_fullWindowRect);
+    }
+
+    private void SaveCaptionRect() => CaptionWindowSettings.Save(AppWindow.Position, AppWindow.Size);
+
+    // Bottom-centre of the current screen, above the taskbar: where film subtitles sit.
+    private RectInt32 DefaultCaptionRect()
+    {
+        var work = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
+        double scale = Shell.XamlRoot?.RasterizationScale ?? 1.0;
+        int width = Math.Min((int)(1000 * scale), work.Width - (int)(40 * scale));
+        int height = (int)(210 * scale);
+        return new RectInt32(work.X + (work.Width - width) / 2,
+                             work.Y + work.Height - height - (int)(24 * scale),
+                             width, height);
     }
 
     // French decimal comma, one place: "Latence 3,2 s".
@@ -157,16 +270,16 @@ public sealed partial class MainWindow : Window
 
     private void Dispatch(Action action) => DispatcherQueue.TryEnqueue(() => action());
 
-    private static string ModelPath()
+    // Next to the exe first (what the installer does), then the per-user data folder
+    // (what setup.ps1 populates). Null when the model is in neither.
+    private static string? FindModel(string name)
     {
-        const string name = "qwen3-1.7b-easylang-fr-Q4_K_M.gguf";
-        // Easiest for the user: drop the model right next to the exe.
         var beside = Path.Combine(AppContext.BaseDirectory, name);
         if (File.Exists(beside)) return beside;
-        // Fallback: the per-user data folder (what setup.ps1 populates).
-        return Path.Combine(
+        var data = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "LiveLinguist", name);
+        return File.Exists(data) ? data : null;
     }
 
     // Whisper STT model (for the "Réunion / vidéo" loopback source). Same lookup as
