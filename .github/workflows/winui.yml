@@ -60,8 +60,14 @@ jobs:
           $env:SCREENSHOT_VIEW = "main"; $env:SCREENSHOT_PATH = "$pwd\screenshot-main.png"
           $p = Start-Process -FilePath $exe.FullName -PassThru; $p.WaitForExit(90000) | Out-Null
           foreach ($f in "screenshot.png", "screenshot-main.png") {
+            $path = Join-Path $pwd $f
+            if (-not (Test-Path $path)) { Write-Host "PNGB64-MISSING $f"; continue }
+            $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($path))
             Write-Host "PNGB64-BEGIN $f"
-            Write-Host ([Convert]::ToBase64String([IO.File]::ReadAllBytes($f)))
+            for ($i = 0; $i -lt $b64.Length; $i += 4000) {
+              Write-Host ("PNGB64 " + $b64.Substring($i, [Math]::Min(4000, $b64.Length - $i)))
+            }
+            Write-Host "PNGB64-END $f"
           }
 
       - name: Upload screenshot artifact
