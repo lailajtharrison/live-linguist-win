@@ -63,7 +63,21 @@ Q4_K_M and Q5_K_M (Dylan's model card reports the 1.7B degrading at Q4_K_M).
 
 ## Status (DGX agent: update this)
 
-- Task 1: not started
-- Task 2: not started
-- Task 3: not started
-- Notes:
+- Task 1: **DONE** (2026-09-29). Generated 12,000 utterances → rewrites → verified with the two
+  teacher servers. **10,736 accepted (89%)**. Top rejection reasons: sentence too long 689,
+  question_ok 288, sens_preserve 119, lost-number 72, rien_invente 70, grammaire 56. Merged to
+  `data/train_v2.jsonl` = **12,627 pairs** (1,891 v1 + 10,736 new). Retrained 0.6B **wide2**
+  (2 epochs, lr 1e-4): **eval_loss 0.8818, tok-acc 0.7919** — vs round-1 `wide` 0.9281 / 0.7895,
+  i.e. lower loss on 6.6× the data. Spot-checks: questions kept as questions, numbers preserved,
+  fillers stripped, no obvious invention getting through the checker.
+- Task 2: **DONE**. Published pre-release **`weights-fr-0.6b-v2-20260929`** (prerelease, NOT Latest)
+  with `ll-fr-0.6b-wide2-f16.gguf` (f16, 1.2 GB) + `gen-summary.json` + `gen-verified.jsonl` + logs.
+  `v0.6-fr` remains the app's Latest. f16 only — Dell quantizes to Q4_K_M / Q5_K_M and tests.
+- Task 3: not done (optional 1.7B full-SFT on fr_aug + round-2 accepted pairs). Left for a follow-up.
+- Notes: Fixed a pre-existing bug in `train-v2.sh` — a stray apostrophe in a comment (`peft>=0.20's`)
+  closed the single-quoted `docker ... bash -c '...'` block, leaking cmake + the python teacher
+  downloads to the host (looked like "cmake pkgRedirects" / "python: command not found"). Fixed +
+  pushed; also added a `BUILD_DIR` override and an up-front build-dir clean. **NEXT (Dell side):**
+  download `ll-fr-0.6b-wide2-v2` into `C:\Users\lharr260\ll-eval\incoming\` and run the 216-sentence
+  eval — ship only if it clears round-1's meaning errors (e.g. "20 min" → "20 sec", reversed Easterlin)
+  while keeping the ~1.2 s/caption speed.
