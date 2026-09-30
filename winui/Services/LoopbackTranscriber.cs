@@ -16,17 +16,27 @@ namespace LiveLinguistWinUI.Services;
 /// can't serve: a mic in a call hears the local student, not the remote partner.
 ///
 /// Pipeline: WasapiLoopbackCapture -> downmix to mono -> resample to 16 kHz ->
-/// energy VAD chunks it into utterances -> Whisper (fr) -> Phrase events.
+/// UtteranceChunker (energy VAD, utterances of at most 5 s) -> Whisper (fr) -> Phrase
+/// events, with Hypothesis events (a live partial transcript) while an utterance grows.
 public sealed class LoopbackTranscriber : ISpeechSource
 {
-    private const int WhisperRate = 16_000;      // Whisper wants 16 kHz mono
-    private const int FrameSamples = 480;        // 30 ms @ 16 kHz
-    private const float SpeechRms = 0.006f;      // energy gate (normalized float)
-    private const int SilenceFlushMs = 700;      // flush an utterance after this much trailing silence
-    private const int MaxUtteranceMs = 12_000;   // …or when it gets this long (bounds latency)
-    private const int MinUtteranceMs = 400;      // ignore blips shorter than this
+    private const int WhisperRate = UtteranceChunker.SampleRate;   // Whisper wants 16 kHz mono
+    private const int FrameSamples = UtteranceChunker.FrameSamples;
+    private const int MaxUtteranceMs = 5_000;
+
+    // Live partial transcript of the utterance still being heard: every PartialEveryMs,
+    // but only while Whisper is fast enough on this machine that the extra runs do not
+    // delay the final transcript (on a slow laptop they are skipped).
+    private const int PartialEveryMs = 1_000;
+    private const int PartialMaxWhisperMs = 600;
 
     private readonly string _modelPath;
+    private readonly UtteranceChunker _chunker = new() { MaxMs = MaxUtteranceMs };
+    private double _lastWhisperMs;
+
+    /// When the most recent utterance ended (was cut for Whisper). Read it when a Phrase
+    /// arrives to measure the delay from the end of speech to the caption.
+    public DateTime LastUtteranceEndUtc { get; private set; }
     private WasapiLoopbackCapture? _capture;
     // Swapped when the Windows default output changes; the pump reads whichever is current.
     private volatile ISampleProvider? _pipeline;
@@ -56,7 +66,13 @@ public sealed class LoopbackTranscriber : ISpeechSource
             _whisperFactory = WhisperFactory.FromPath(_modelPath);
             _whisper = _whisperFactory.CreateBuilder()
                 .WithLanguage("fr")
-                .WithThreads(Math.Max(1, Environment.ProcessorCount - 2))
+                // More threads was not faster (i9-14900K: 8 threads 363 ms vs 30 threads
+                // 400 ms on a 5 s utterance) and starves the simplifier running alongside.
+                .WithThreads(Math.Clamp(Environment.ProcessorCount / 2, 2, 8))
+                // Size Whisper's encoder to the longest utterance instead of its default
+                // 30 s window: 3.5x faster on 5 s utterances (1,254 -> 363 ms) with the
+                // same transcript. 50 encoder frames per second, plus a margin.
+                .WithAudioContextSize(MaxUtteranceMs / 20 + 64)
                 .Build();
 
             StartCapture();
@@ -131,64 +147,63 @@ public sealed class LoopbackTranscriber : ISpeechSource
         });
     }
 
-    // Pull 16 kHz mono, gate on energy, and flush utterances to Whisper.
+    // Pull 16 kHz mono in 30 ms frames, chunk it into utterances, and transcribe them.
     private async Task PumpAsync(CancellationToken ct)
     {
         var frame = new float[FrameSamples];
-        var utterance = new List<float>(WhisperRate * 4);
-        int trailingSilenceMs = 0;
-        bool hasSpeech = false;
+        int filled = 0;
+        int sincePartialSamples = 0;
 
         while (!ct.IsCancellationRequested)
         {
             var pipeline = _pipeline;
-            int got = pipeline == null ? 0 : ReadFull(pipeline, frame);
+            int got = pipeline == null ? 0 : pipeline.Read(frame, filled, FrameSamples - filled);
             if (got == 0) { await Task.Delay(20, ct).ConfigureAwait(false); continue; }
+            filled += got;
+            if (filled < FrameSamples) continue;
+            filled = 0;
 
-            float rms = Rms(frame, got);
-            bool voiced = rms >= SpeechRms;
-            const int frameMs = FrameSamples * 1000 / WhisperRate; // 30 ms
+            var utterance = _chunker.Push(frame, out bool voiced);
+            if (voiced) LastSoundUtc = DateTime.UtcNow;
 
-            if (voiced)
+            if (utterance != null)
             {
-                LastSoundUtc = DateTime.UtcNow;
-                hasSpeech = true;
-                trailingSilenceMs = 0;
-                utterance.AddRange(new ArraySegment<float>(frame, 0, got));
-            }
-            else if (hasSpeech)
-            {
-                trailingSilenceMs += frameMs;
-                utterance.AddRange(new ArraySegment<float>(frame, 0, got)); // keep a little tail
+                LastUtteranceEndUtc = DateTime.UtcNow;
+                sincePartialSamples = 0;
+                var phrase = await TranscribeAsync(utterance, ct).ConfigureAwait(false);
+                if (phrase != null) Phrase?.Invoke(phrase);
+                continue;
             }
 
-            int utterMs = utterance.Count * 1000 / WhisperRate;
-            bool flush = hasSpeech && (trailingSilenceMs >= SilenceFlushMs || utterMs >= MaxUtteranceMs);
-            if (flush)
+            if (!_chunker.HasSpeech) { sincePartialSamples = 0; continue; }
+            sincePartialSamples += FrameSamples;
+            if (sincePartialSamples * 1000 / WhisperRate >= PartialEveryMs
+                && _chunker.LengthMs >= PartialEveryMs
+                && _lastWhisperMs <= PartialMaxWhisperMs)
             {
-                if (utterMs >= MinUtteranceMs)
-                    await TranscribeAsync(utterance.ToArray(), ct).ConfigureAwait(false);
-                utterance.Clear();
-                hasSpeech = false;
-                trailingSilenceMs = 0;
+                sincePartialSamples = 0;
+                var partial = await TranscribeAsync(_chunker.Snapshot(), ct).ConfigureAwait(false);
+                if (partial != null) Hypothesis?.Invoke(partial);
             }
         }
     }
 
-    private async Task TranscribeAsync(float[] samples, CancellationToken ct)
+    // Null when Whisper heard nothing usable.
+    private async Task<string?> TranscribeAsync(float[] samples, CancellationToken ct)
     {
         try
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var text = new System.Text.StringBuilder();
             await foreach (var seg in _whisper!.ProcessAsync(samples, ct).ConfigureAwait(false))
                 text.Append(seg.Text);
+            _lastWhisperMs = sw.Elapsed.TotalMilliseconds;
 
             var phrase = text.ToString().Trim();
-            if (!string.IsNullOrWhiteSpace(phrase) && !IsNoise(phrase))
-                Phrase?.Invoke(phrase);
+            return string.IsNullOrWhiteSpace(phrase) || IsNoise(phrase) ? null : phrase;
         }
-        catch (OperationCanceledException) { }
-        catch { /* skip a bad utterance rather than kill the loop */ }
+        catch (OperationCanceledException) { return null; }
+        catch { return null; /* skip a bad utterance rather than kill the loop */ }
     }
 
     // Whisper on near-silence sometimes emits stock hallucinations; drop the common ones.
@@ -198,25 +213,6 @@ public sealed class LoopbackTranscriber : ISpeechSource
         return t.Length == 0
             || t is "merci" or "sous-titres réalisés par la communauté d'amara.org"
             || t.Contains("amara.org");
-    }
-
-    private static int ReadFull(ISampleProvider sp, float[] frame)
-    {
-        int total = 0;
-        while (total < frame.Length)
-        {
-            int n = sp.Read(frame, total, frame.Length - total);
-            if (n == 0) break;
-            total += n;
-        }
-        return total;
-    }
-
-    private static float Rms(float[] buf, int count)
-    {
-        double sum = 0;
-        for (int i = 0; i < count; i++) sum += buf[i] * buf[i];
-        return count == 0 ? 0f : (float)Math.Sqrt(sum / count);
     }
 
     public async Task StopAsync()

@@ -233,12 +233,16 @@ public sealed partial class MainWindow : Window
     // it is generated so the reader is not left waiting for the whole rewrite.
     private async Task OnPhraseAsync(string text)
     {
+        // Latency is what the student waits: from the end of the speech to the caption.
+        // For call/video audio that includes Whisper's transcription, so start the clock
+        // when the utterance ended. (Read before the first await: the transcriber is
+        // still on this phrase.)
+        var spokenEndUtc = _speech is LoopbackTranscriber lt ? lt.LastUtteranceEndUtc : DateTime.UtcNow;
         Dispatch(() => ShowHeard(text));
         if (_llm == null) return;
         await _simplifyGate.WaitAsync();
         try
         {
-            var sw = Stopwatch.StartNew();
             bool started = false;
             void Show(string caption) => Dispatch(() =>
             {
@@ -253,8 +257,7 @@ public sealed partial class MainWindow : Window
             // null = the model answered in English; showing the French that was actually
             // said is always better than a wrong-language caption.
             var simple = await _llm.SimplifyAsync(Prompts.FrenchFalc, text, Show) ?? text;
-            sw.Stop();
-            var latency = FormatLatency(sw.Elapsed);
+            var latency = FormatLatency(DateTime.UtcNow - spokenEndUtc);
             if (!string.IsNullOrWhiteSpace(simple))
             {
                 Show(simple);
